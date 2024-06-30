@@ -69,13 +69,39 @@ The analysis primarily focused on comparing hospitalization rates due to COVID-1
 
 Data visualization played a crucial role in interpreting the complex relationships within the data. Using Excel, line charts were created to depict hospitalization rates per million people, segmented by week:
 
-- **Line Charts**: Each state’s weekly hospitalization rates were plotted to visually compare trends over time. These charts were instrumental in highlighting similarities and differences in trends across states, facilitating a straightforward comparison of epidemiological impacts.
+- **Line Charts**: Each state’s weekly hospitalization rates were plotted to visually compare trends over time. These charts were instrumental in highlighting similarities and differences in trends across states, facilitating a straightforward comparison of epidemiological impacts. I used Florida as a baseline of comparison because they banned mask mandates.
 
-<img src="res/2024-06-29-15-52-40.png" width="700" height="400">
+<img src="res/2024-06-30-14-19-44.png" width="700" height="400">
 
-<img src="res/2024-06-29-15-55-01.png" width="700" height="400">
+__Florida vs Utah__: The p-value is 0.001643134. This indicates a statistically significant difference between Florida and Utah. The difference is likely due to factors related to mask guidance in these states. Florida banned mandates while Utah had no guidelines. They should be the same but because they are different, this indicates further investigation.
 
-<img src="res/2024-06-29-15-57-25.png" width="700" height="400">
+<img src="res/2024-06-30-14-23-24.png" width="700" height="400">
+
+__Florida vs California__: The p-value is 0.188031763. This p-value is relatively high, suggesting that there is no statistically significant difference between Florida and California. This is strange in light of the fact that California was on mandates until March of 2021 which was after the data in this project. So it suggests that mandates may have had an effect, but again, further investigation is necessary.
+
+<img src="res/2024-06-30-14-27-54.png" width="700" height="400">
+
+__Florida vs Nevada__: The p-value is 0.002218502. Similar to Florida vs Utah, this indicates a statistically significant difference between Florida and Nevada regarding mask guidance. Nevada, recommended masks, but did not mandate them.
+
+<img src="res/2024-06-30-14-31-53.png" width="700" height="400">
+
+__Florida vs Arizona__: The p-value is 0.005352116. This suggests a statistically significant difference between Florida and Arizona in terms of mask mandates/recommendations. Arizona also banned mask mandates, but is different in the results. This indicates further investigation is necessary.
+
+<img src="res/2024-06-30-14-35-17.png" width="700" height="400">
+
+__Florida vs Oregon__: The p-value is 8.02427E-06 (which is 0.00000802427). This very low p-value indicates a statistically significant difference between Florida and Oregon regarding hospitalizations (likely related to the impact of mask mandates/recommendations).
+
+## Testing the NULL Hypothesis
+
+When I looked at the charts, they did not look very different between the states. To confirm my hypothesis I ran a t-test between the data in each chart. Florida was used as a baseline because they had no mask mandates and were also opposed by leadership. The p-values indicate that mask mandates may not be a good indicator of hospitalizations. However, more research needs to be explored before a more comprehensive recommendation can be provided. Perhaps in a future Python project, whereas this project focused more on SQL.
+
+State 1 | State 2 | p-value | Mandated
+---------|----------|---------|-----------
+ Florida | Utah | 0.001643134 | No Guidance
+ Florida | California | 0.188031763 | Recommended but not mandated
+ Florida | Nevada | 0.002218502 | Some Counties Recommended
+ Florida | Arizona | 0.005352116 | Mandates Banned
+ Florida | Oregon | 8.02427E-06 | Mandated
 
 - **Excel Power Query**: Enabled dynamic comparisons by allowing easy adjustments of the states included in the visual analysis, enhancing the flexibility of the data exploration process.
 
