@@ -1,0 +1,391 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "This point forward will be in SQLite only because it's more compatible with spatialite and the setup with QGIS.\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- Check deathincrease for Xmas day\r\nSELECT\r\n  deathincrease\r\n, daily.state\r\n, GEOMETRY\r\nFROM\r\n  daily\r\n, state\r\nWHERE\r\n  state.stusps = daily.state\r\n  AND dt = '2020-12-25'\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "DROP TABLE IF EXISTS spatialtable;\r\nCREATE TABLE spatialtable AS \r\n  SELECT\r\n    deathincrease\r\n, daily.state\r\n, GEOMETRY\r\nFROM daily, state\r\nWHERE state.stusps = daily.state\r\nAND dt = '2020-12-25';\r\nSELECT recovergeometrycolumn('spatialtable', 'geometry', 4269, 'MULTIPOLYGON');\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 02. Find avg hospitalizations, cases, and deaths by state\r\nSELECT\r\n  d1.dt\r\n, AVG(CAST(d2.hospitalizedcurrently AS FLOAT)) AS avghosp\r\n, AVG(CAST(d2.deathincrease AS FLOAT)) AS avgdeath\r\n, AVG(CAST(d2.positiveincrease AS FLOAT)) AS avgcases\r\n, d1.deathincrease\r\nFROM\r\n  daily d1\r\n, daily d2\r\nWHERE\r\n  ABS(julianday (d1.dt) - julianday (d2.dt)) < 4\r\n  AND d1.state = 'FL'\r\n  AND d2.state = 'FL'\r\nGROUP BY\r\n  d1.dt\r\n, d1.deathincrease\r\nORDER BY\r\n  d1.dt DESC\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 03. Show Avg Death Increase vs Death Increase by Day\r\nSELECT\r\n  d1.dt AS \"Date\"\r\n, AVG(CAST(d2.positiveincrease AS FLOAT)) AS \"Daily Avg Cases\"\r\n, d1.deathincrease \"Death Increase\"\r\nFROM\r\n  daily d1\r\n, daily d2\r\nWHERE\r\n  ABS(julianday (d1.dt) - julianday (d2.dt)) < 4\r\n  AND d1.state = 'FL'\r\n  AND d2.state = 'FL'\r\nGROUP BY\r\n  d1.dt\r\n, d1.deathincrease\r\nORDER BY\r\n  d1.dt DESC\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 04. Average Death Increases vs. Death Increases (Chart data)\r\nSELECT\r\n  d1.dt \"Date\"\r\n, AVG(CAST(d2.deathincrease AS FLOAT)) AS \"Avg Death Increase\"\r\n, d1.deathincrease \"Death Increase\"\r\nFROM\r\n  daily d1\r\n, daily d2\r\nWHERE\r\n  ABS(julianday (d1.dt) - julianday (d2.dt)) < 4\r\n  AND d1.state = 'FL'\r\n  AND d2.state = 'FL'\r\nGROUP BY\r\n  d1.dt\r\n, d1.deathincrease\r\nORDER BY\r\n  d1.dt DESC\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "Here we see the daily fluctuations of deaths, and the average deaths per day in one chart for Florida. We can change the query above to get a different state such as California. \r\n \r\n![](res/2024-06-29-09-27-01.png)\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 05. Average Death Increases vs. Death Increases (Chart data)\r\nSELECT\r\n  d1.dt \"Date\"\r\n, AVG(CAST(d2.deathincrease AS FLOAT)) AS \"Avg Death Increase\"\r\n, d1.deathincrease \"Death Increase\"\r\nFROM\r\n  daily d1\r\n, daily d2\r\nWHERE\r\n  ABS(julianday (d1.dt) - julianday (d2.dt)) < 4\r\n  AND d1.state = 'CA'\r\n  AND d2.state = 'CA'\r\nGROUP BY\r\n  d1.dt\r\n, d1.deathincrease\r\nORDER BY\r\n  d1.dt DESC\r\n\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "California had a higher number but also a different shape.\r\n![](res/2024-06-29-09-34-18.png)\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 06. Find avg hospitalizations, cases, and deaths by state for CA & FL\r\nSELECT\r\n  d1.dt \"Date\"\r\n, d1.state \"ST\"\r\n, AVG(CAST(d2.hospitalizedcurrently AS FLOAT)) AS \"Avg Hospitalized\"\r\n, AVG(CAST(d2.deathincrease AS FLOAT)) AS \"Avg Deaths\"\r\n, AVG(CAST(d2.positiveincrease AS FLOAT)) AS \"Avg Cases\"\r\n, d1.deathincrease \"Daily Deaths\"\r\nFROM\r\n  daily d1\r\n, daily d2\r\nWHERE\r\n  ABS(julianday (d1.dt) - julianday (d2.dt)) < 4\r\n  AND d1.state = d2.state \r\n  AND d1.state IN ('FL', 'CA')\r\nGROUP BY\r\n  d1.dt\r\n, d1.deathincrease\r\nORDER BY\r\n  \"Avg Deaths\" DESC\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "Note we have to go very far down the table to find where Florida starts showing high death rates. ",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 07. Find the highest Death Rates for opposing states and the date\r\nSELECT\r\n  \"Date\"\r\n, \"ST\"\r\n, \"Avg Deaths\"\r\nFROM\r\n(\r\nSELECT\r\n  d1.dt \"Date\"\r\n, d1.state \"ST\"\r\n, AVG(CAST(d2.hospitalizedcurrently AS FLOAT)) AS \"Avg Hospitalized\"\r\n, AVG(CAST(d2.deathincrease AS FLOAT)) AS \"Avg Deaths\"\r\n, AVG(CAST(d2.positiveincrease AS FLOAT)) AS \"Avg Cases\"\r\n, d1.deathincrease \"Daily Deaths\"\r\nFROM\r\n  daily d1\r\n, daily d2\r\nWHERE\r\n  ABS(julianday (d1.dt) - julianday (d2.dt)) < 4\r\n  AND d1.state = d2.state \r\n  AND d1.state IN ('FL', 'CA')\r\nGROUP BY\r\n  d1.dt\r\n, d1.deathincrease\r\nORDER BY\r\n  \"Avg Deaths\" DESC\r\n)\r\nGROUP BY \"ST\"\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "Surprisingly, this wasn't a typo, both of the highest death tolls occurred on the same day 25-Jan-2021\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 08. Compare Positive Rates in Two Different States\r\nWITH monthly_stats AS (\r\n    SELECT strftime('%m', dt) AS mnth\r\n         , state\r\n         , sum(positiveincrease) AS totpositive\r\n         , sum(totalTestResultsIncrease - positiveincrease) AS totnegative\r\n      FROM daily\r\n     WHERE 1=1\r\n       AND state IN ('CA', 'FL')  -- Include all states you want to compare\r\n     GROUP BY strftime('%m', dt), state\r\n),\r\nstate_stats AS (\r\n    SELECT mnth\r\n         , state\r\n         , totpositive\r\n         , totnegative\r\n         , totpositive + totnegative AS tottests\r\n         , CAST(totpositive AS REAL) / NULLIF(CAST(totpositive + totnegative AS REAL), 0) AS posrate\r\n      FROM monthly_stats\r\n)\r\nSELECT t2.mnth \"Month\"\r\n     , t2.state AS \"State 1\"\r\n     , t2.posrate AS \"Positive Rate 1\"\r\n     , t3.state AS \"State 2\"\r\n     , t3.posrate AS \"Positive Rate 2\"\r\n  FROM state_stats t2\r\n INNER JOIN state_stats t3 ON t2.mnth = t3.mnth\r\n                          AND t2.state = 'CA'  -- Replace with first state of interest\r\n                          AND t3.state = 'FL'; -- Replace with second state of interest\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 09. Get Positive Rate for a Single State\r\nWITH monthly_stats AS (\r\n    SELECT strftime('%m', dt) AS mnth\r\n         , sum(positiveincrease) AS totpositive\r\n         , sum(totalTestResultsIncrease - positiveincrease) AS totnegative\r\n      FROM daily\r\n     WHERE 1=1\r\n       AND state = 'CA'  -- Replace with your desired state abbreviation\r\n     GROUP BY strftime('%m', dt)\r\n),\r\nstate_stats AS (\r\n    SELECT mnth \"Month\"\r\n         , totpositive \"Total Positive\"\r\n         , totnegative \"Total Negative\"\r\n         , totpositive + totnegative AS \"Total Tests\"\r\n         , CAST(totpositive AS REAL) / NULLIF(CAST(totpositive + totnegative AS REAL), 0) AS \"Positive Rate\"\r\n      FROM monthly_stats\r\n)\r\nSELECT *\r\n  FROM state_stats;\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "At this point I need to fix the tables so that I can match keys. \r\n\r\n### Narrative for Matching Tables and Integrating Data\r\n\r\n1. **Understanding Table Relationships:**\r\n   - **State and State Population Tables:**\r\n     - Identify and verify that `state.name` in the `state` table matches `statepop.name` in the `statepop` table correctly. This ensures that each state's population data (`statepop`) corresponds accurately to the state details (`state`).\r\n\r\n2. **Part 1: Get the Correct State Name:**\r\n   - **Objective:** Match the state abbreviation (`stusps`) from the `state` table with the state name from the `statepop` table.\r\n   - **SQL Code:**\r\n     ```sql\r\n     SELECT stusps, statepop.*\r\n     FROM state, statepop\r\n     WHERE state.name = statepop.name;\r\n     ```\r\n   - **Action Steps:**\r\n     - Review the output to ensure that each `stusps` (state abbreviation) in the `state` table correctly corresponds to the respective state's population data (`statepop`).\r\n\r\n3. **Part 2: Join States and COVID Data:**\r\n   - **Objective:** Integrate COVID-19 data (`daily` table) with state population data (`statepop`) using state abbreviations (`stusps`) as the key.\r\n   - **SQL Code:**\r\n     ```sql\r\n     SELECT *\r\n     FROM\r\n         (SELECT geometry, stusps, statepop.*\r\n          FROM state, statepop\r\n          WHERE state.name = statepop.name\r\n         ) AS stpop,\r\n         (SELECT state, sum(positiveIncrease) AS totpositive\r\n          FROM daily\r\n          GROUP BY state\r\n         ) AS stcovid\r\n     WHERE stcovid.state = stpop.stusps;\r\n     ```\r\n   - **Action Steps:**\r\n     - Confirm that the `stusps` from `state` correctly links with `statepop.name`.\r\n     - Verify that `stcovid.state` in the subquery accurately aggregates COVID-19 data (`positiveIncrease`) per state.\r\n\r\n4. **Part 3: Calculate Percent Positive:**\r\n   - **Objective:** Compute the percentage of positive COVID-19 cases relative to the state population estimate.\r\n   - **SQL Code:**\r\n     ```sql\r\n     SELECT geometry, stusps,\r\n         CAST(totpositive AS real) / CAST(popestimate2019 AS real) AS percentpositive,\r\n         totpositive\r\n     FROM\r\n         (SELECT geometry, stusps, statepop.*\r\n          FROM state, statepop\r\n          WHERE state.name = statepop.name\r\n         ) AS stpop,\r\n         (SELECT state, sum(positiveIncrease) AS totpositive\r\n          FROM daily\r\n          GROUP BY state\r\n         ) AS stcovid\r\n     WHERE stcovid.state = stpop.stusps;\r\n     ```\r\n   - **Action Steps:**\r\n     - Ensure that `popestimate2019` in `statepop` accurately reflects the estimated population for each state.\r\n     - Validate the calculation of `percentpositive` to correctly represent the percentage of positive cases relative to the state's population.\r\n\r\n### Key Considerations:\r\n- **Data Consistency:** Verify that state names (`state.name` and `statepop.name`) are consistent across both tables.\r\n- **Join Conditions:** Double-check join conditions (`stcovid.state = stpop.stusps`) to ensure accurate data linkage.\r\n- **Calculation Accuracy:** Validate calculations (`percentpositive`) to accurately reflect the intended metrics.\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- Part 1, Query that gets the correct state names\r\nSELECT stusps, statepop.*\r\nFROM state, statepop\r\nWHERE state.name = statepop.name\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "In the next query we just look at how we would join state, statepop, and daily tables\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- Part 2, query that joins the states and covid data\r\nSELECT * FROM\r\n\t(SELECT geometry, stusps, statepop.*\r\n\t FROM state, statepop\r\n\t WHERE state.name = statepop.name\r\n\t) AS stpop,\r\n\t\t(SELECT state, sum(positiveIncrease) AS totpositive\r\n\t\tFROM daily\r\n\t\tGROUP BY state) AS stcovid\r\nWHERE stcovid.state = stpop.stusps\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "Part 3 calculates the percentage of positive COVID-19 cases relative to the estimated state population for each state, using data joined from `state`, `statepop`, and `daily` tables based on matching state names or abbreviations.\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- Part 3, Show percent positive\r\nSELECT geometry, stusps,\r\n\tCAST(totpositive AS real) / CAST( popestimate2019 AS real) AS percentpositive,\r\n\ttotpositive\r\nFROM\r\n\t(SELECT geometry, stusps, statepop.*\r\n\t FROM state, statepop\r\n\t WHERE state.name = statepop.name\r\n\t) AS stpop,\r\n\t\t(SELECT state, sum(positiveIncrease) AS totpositive\r\n\t\tFROM daily\r\n\t\tGROUP BY state) AS stcovid\r\nWHERE stcovid.state = stpop.stusps\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "## Narrative for the last part\r\n\r\nThis script drops any existing `spatialtable`, then creates a new table named `spatialtable`. It populates this table with geographic data (`geometry`) and calculates the percentage of positive COVID-19 cases relative to the estimated state population (`percentpositive`). The data is sourced from joined information in `state` and `statepop` tables for state details and population estimates, and `daily` table for COVID-19 statistics aggregated by state. Finally, it ensures that the `geometry` column is properly configured for spatial data using the `recovergeometrycolumn` function.\r\n\r\nWe run this in Spatialite_gui not here, but I have it here for documentation. \r\n\r\n```sql\r\nDROP TABLE IF EXISTS spatialtable;\r\n\r\nCREATE TABLE spatialtable AS\r\nSELECT geometry, stusps,\r\n\tCAST(totpositive AS real) / CAST( popestimate2019 AS real) AS percentpositive,\r\n\ttotpositive\r\nFROM\r\n\t(SELECT geometry, stusps, statepop.*\r\n\t FROM state, statepop\r\n\t WHERE state.name = statepop.name\r\n\t) AS stpop,\r\n\t\t(SELECT state, sum(positiveIncrease) AS totpositive\r\n\t\tFROM daily\r\n\t\tGROUP BY state) AS stcovid\r\nWHERE stcovid.state = stpop.stusps;\r\n\r\nSELECT recovergeometrycolumn('spatialtable', 'geometry', 4269, 'MULTIPOLYGON')\r\n```\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "Small side-track on data per state using the spatialtable we just made just to illustrate that QGIS can create a map per state if we select the right tables. \r\n\r\n![](res/2024-06-29-11-46-37.png)\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- Part 4 alter daily table so population is a real number\r\nALTER TABLE daily\r\nADD COLUMN population real;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- Part 5 Confirm that the table was altered\r\n-- Enter this command in spatialite_gui to see all data types\r\nPRAGMA table_info(daily);\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- Part 6 confirm table is empty because we didn't add values yet\r\n SELECT population FROM daily\r\n limit 5\r\n ;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- Part 6.a select all data from stusps and statepop\r\n\r\nSELECT stusps, statepop.*\r\n\tFROM state, statepop\r\n\tWHERE state.name = statepop.name  \r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- Part 7 add population data to daily table\r\nUPDATE daily\r\nSET population = popestimate2019\r\nFROM (SELECT stusps, statepop.*\r\n\tFROM state, statepop\r\n\tWHERE state.name = statepop.name\r\n\t) AS t\r\nWHERE daily.state = t.stusps;\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- Part 8 Confirm that the data has been added\r\n SELECT state, population FROM daily\r\n limit 5\r\n ;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "These changes were encouraged by the professor at Salisbury in order to make queries easier going forward, however, it's not normal form to put all the data into one table. Not my normal practice. \r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 10. See Percent of Positive Cases by State\r\nSELECT\r\n  state \"State\"\r\n, positiveincrease \"Daily Positive Cases\"\r\n, ROUND((SUM(positiveincrease) / MIN(population)) * 100, 2) || '%' AS \"Positive Rate\"\r\nFROM\r\n  daily\r\nGROUP BY\r\n  state\r\nORDER BY\r\n  \"Positive Rate\" DESC\r\nLIMIT 10\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "Note: CountyPop table is HUGE so limit results when looking at it. In the next section we'll confirm the changes. \r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 11. Assign a Region to a County\r\nALTER TABLE covidcounty ADD COLUMN region TEXT;\r\n\r\nUPDATE covidcounty\r\nSET region = countypop.region\r\nFROM countypop\r\nWHERE covidcounty.state = countypop.stname;\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 11.a Confirm the \"region\" column was added and no data\r\nSELECT * FROM covidcounty\r\nLIMIT 10\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 12. Analyze the cencus by region for states\r\n-- run in spatialite_gui because it uses geo data\r\nWITH stpop AS (\r\n  SELECT\r\n    st.state AS stusps,\r\n    sp.*  -- assuming statepop has other columns you need\r\n  FROM\r\n    state AS st\r\n  JOIN\r\n    statepop AS sp ON st.name = sp.name\r\n),\r\nstcovid AS (\r\n  SELECT\r\n    state,\r\n    SUM(deathincrease) AS totdeath\r\n  FROM\r\n    daily\r\n  GROUP BY\r\n    state\r\n)\r\nSELECT\r\n  COUNT(*) AS ct,\r\n  stpop.region,\r\n  SUM(stcovid.totdeath) AS totdeath,\r\n  AVG(stcovid.totdeath) AS avgdeath,\r\n  STDDEV_SAMP(stcovid.totdeath) AS stdev_death,\r\n  STDDEV_SAMP(stcovid.totdeath) / AVG(stcovid.totdeath) AS cv\r\nFROM\r\n  stpop\r\nJOIN\r\n  stcovid ON stcovid.state = stpop.stusps\r\nGROUP BY\r\n  stpop.region;\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "Mask mandate status as of 2021 from the NY Times \r\n![](res/2024-06-29-14-21-58.png)\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 13. Nearby states with different mask mandates in 2021 (per 1M pop)\r\nSELECT\r\n  strftime ('%W', dt) AS wk\r\n, strftime ('%Y', dt) AS yr\r\n, MIN(dt) AS dt\r\n, CAST(hospitalizedcurrently AS FLOAT) / population * 1000000 AS \"Pct Hospitalized\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state = 'TN' -- change state for another view\r\nGROUP BY\r\n  yr\r\n, wk\r\nORDER BY\r\n  yr\r\n, wk ASC\r\nlimit 10\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "\r\n![](res/2024-06-29-13-26-03.png)",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 14a. Show Two States Hospitalized Rate Percent per 1M pop\r\nSELECT t.dt,\"California Hospitalized\", \"Florida Hospitalized\"\r\nFROM\r\n(SELECT  strftime('%W', dt) AS wk, strftime('%Y', dt) AS yr,\r\n\t  min(dt) AS dt,\r\n\t  CAST(hospitalizedcurrently AS float)/population*1000000 as \"California Hospitalized\"\r\nFROM daily\r\nWHERE state = 'CA'\r\nGROUP BY yr,wk\r\nORDER BY yr,wk ASC) AS t,\r\n(SELECT  strftime('%W', dt) AS wk, strftime('%Y', dt) AS yr,\r\n\t  min(dt) AS dt,\r\n\t  CAST(hospitalizedcurrently AS float)/population*1000000 as \"Florida Hospitalized\"\r\nFROM daily\r\nWHERE state = 'FL'\r\nGROUP BY yr,wk\r\nORDER BY yr,wk ASC) AS t2\r\nWHERE t.dt = t2.dt\r\nLIMIT 5 -- remove to see all data, limited to keep size of notebook small\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 14b. Show Two States Hospitalized Rate Percent per 1M pop \r\n-- Significantly easier to read as a CTE\r\nWITH\r\n     Hosp1 AS  (\r\n          SELECT strftime('%W', dt) AS week\r\n               , strftime('%Y', dt) AS year\r\n               , min(dt) AS dt\r\n               , CAST(hospitalizedcurrently AS float)/ population * 1000000 AS first_hosp\r\n            FROM daily\r\n           WHERE state = 'CA' -- State abr of first hospital\r\n        GROUP BY year\r\n               , week)\r\n\r\n   , Hosp2 AS  (\r\n          SELECT strftime('%W', dt) AS week\r\n               , strftime('%Y', dt) AS year\r\n               , min(dt) AS dt\r\n               , CAST(hospitalizedcurrently AS float)/ population * 1000000 AS second_hosp\r\n            FROM daily\r\n           WHERE state = 'FL' -- State abr of second hospital\r\n        GROUP BY year\r\n               , week)\r\n/* Outcome */\r\n     SELECT Hosp1.dt \"Date\"\r\n          , Hosp1.first_hosp AS \"California Hospitalized\"\r\n          , Hosp2.second_hosp AS \"Florida Hospitalized\"\r\n       FROM Hosp1\r\n       JOIN Hosp2\r\n         ON Hosp1.dt = Hosp2.dt\r\n   ORDER BY Hosp1.dt\r\n;\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "![](res/2024-06-29-14-01-39.png)\r\n\r\nTo make this a little easier I just downloaded the SQLite ODBC driver so I can query direclty in Excel multiple different states and find a pattern. This is easier than updating the PostreSQL database that I made earlier. \r\n\r\n[SQLITE ODBC Driver](http://www.ch-werner.de/sqliteodbc/)\r\n\r\nThen a little struggle getting the connection string right. \r\nIt must be \r\n`Driver={SQLite3 ODBC Driver};Database=[PATH TO SQLITE FILE];`\r\n\r\nNow all you have to do is make changes to the query in the advanced M code section like this in the screenshot below: \r\n\r\n![](res/2024-06-29-15-46-13.png)\r\n\r\nOk now let's start making some graphs!\r\n\r\n<img src=\"res/2024-06-29-15-52-40.png\" width=\"700\" height=\"400\">\r\n\r\n<img src=\"res/2024-06-29-15-55-01.png\" width=\"700\" height=\"400\">\r\n\r\n<img src=\"res/2024-06-29-15-57-25.png\" width=\"700\" height=\"400\">\r\n\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 15. Create a spatial table and use geo-data to find new deaths for a\r\n--     day and link to a map - enter this in spatialite_gui\r\nDROP TABLE IF EXISTS\r\n  spatialtable\r\n;\r\n\r\n\r\nCREATE TABLE\r\n  spatialtable AS\r\nSELECT\r\n  state.pk_uid\r\n, GEOMETRY\r\n, dt\r\n, deathincrease\r\n, stusps\r\nFROM\r\n  daily\r\n, state\r\nWHERE\r\n  dt = '2020-08-10'\r\n  AND daily.state = stusps;\r\n\tAND state IN ('CA', 'OR', 'NV', 'AR', 'UT')\r\nSELECT\r\n  recovergeometrycolumn ('spatialtable', 'geometry', 4269, 'MULTIPOLYGON')\r\n;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  }
+ ],
+ "metadata": {}
+}

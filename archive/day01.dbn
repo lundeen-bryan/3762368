@@ -1,0 +1,511 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "## Introduction and Overview\r\n\r\nThis is a project I created based on a course by Arthur Lemke at Salisbury University. His approach was to teach students how to write spatial SQL using SQLite. There are advantages to SQLite in that it is a single file that you can keep everything on and you can save it to a sharepoint library or a flashdrive and run everything from there. There isn't much of a problem using it for the course, but I wanted to make a significant change to the course by adding my own challenge; converting it to PostgreSQL. So almost all of the SQL queries will be written in PostgreSQL. \r\n\r\nThe other tools in this course were Spatialite_gui and QGIS. Both of these tools are \"theoretically\" compatible with PostgreSQL, however, in practice I found Spatialite_gui doesn't really work well with PostgreSQL. So some of the exploratory data is written in spatialite to create the spatial connections to QGIS. Many or if not all of the QGIS queries and the charts and maps can be directly created using PostgreSQL in QGIS so that's what I did. I had to teach myself on the fly. \r\n\r\n## What will be covered in this notebook?\r\n\r\nBy the way, I chose to create this in a Jupyter Notebook because it is easy to import it directly to a GIST and then post it in my blog or share it with someone. \r\n\r\nI will be covering the COVID-19 data collected during the peak of the outbreak in 2020-21. The sources might be updated in a later project. ",
+   "metadata": {}
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "## COVID Data Locations\r\n\r\nCounty COVID: https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv\r\n\r\nCounty data: https://www.census.gov/data/datasets/time-series/demo/popest/2010s-counties-total.html\r\n\r\nBoundaries (state, county, urban): https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 01 Data for a particular state, and see the increase since the day before\r\nSELECT dt \"date\", hospitalizedcurrently \"in_hospital\", hospincrease\r\nFROM daily\r\nWHERE state = 'CA'\r\nAND hospitalizedcurrently > 20;",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 346 rows in set (0.01 sec)\r\n| ROW | date | in_hospital | hospincrease |\r\n| ---: | :---: | ---: | ---: |\r\n| 1 | 2021-03-07 00:00:00 | 4291 | 0 |\r\n| 2 | 2021-03-06 00:00:00 | 4513 | 0 |\r\n| 3 | 2021-03-05 00:00:00 | 4714 | 0 |\r\n| 4 | 2021-03-04 00:00:00 | 4967 | 0 |\r\n| 5 | 2021-03-03 00:00:00 | 5110 | 0 |\r\n| ... | ... | ... | ... |\r\n| 342 | 2020-03-31 00:00:00 | 1617 | 185 |\r\n| 343 | 2020-03-30 00:00:00 | 1432 | 398 |\r\n| 344 | 2020-03-29 00:00:00 | 1034 | 0 |\r\n| 345 | 2020-03-28 00:00:00 | 1034 | 288 |\r\n| 346 | 2020-03-27 00:00:00 | 746 | 746 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 02 Multiple States\r\nSELECT\r\n  dt \"Date\"\r\n, hospitalizedcurrently \"in hospital\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state = 'MD'\r\n  OR state = 'FL'\r\n  OR state = 'NY'",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 1140 rows in set (0.01 sec)\r\n| ROW | Date | in hospital |\r\n| ---: | :---: | ---: |\r\n| 1 | 2021-03-07 00:00:00 | 3307 |\r\n| 2 | 2021-03-07 00:00:00 | 818 |\r\n| 3 | 2021-03-07 00:00:00 | 4789 |\r\n| 4 | 2021-03-06 00:00:00 | 3352 |\r\n| 5 | 2021-03-06 00:00:00 | 830 |\r\n| ... | ... | ... |\r\n| 1136 | 2020-02-03 00:00:00 |  |\r\n| 1137 | 2020-02-02 00:00:00 |  |\r\n| 1138 | 2020-02-01 00:00:00 |  |\r\n| 1139 | 2020-01-31 00:00:00 |  |\r\n| 1140 | 2020-01-30 00:00:00 |  |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 03 multiple states, but easier\r\n\r\nSELECT\r\n  dt \"Date\"\r\n, hospitalizedcurrently \"In Hospital\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state IN ('MD', 'FL', 'NY')\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 1140 rows in set (0.01 sec)\r\n| ROW | Date | In Hospital |\r\n| ---: | :---: | ---: |\r\n| 1 | 2021-03-07 00:00:00 | 3307 |\r\n| 2 | 2021-03-07 00:00:00 | 818 |\r\n| 3 | 2021-03-07 00:00:00 | 4789 |\r\n| 4 | 2021-03-06 00:00:00 | 3352 |\r\n| 5 | 2021-03-06 00:00:00 | 830 |\r\n| ... | ... | ... |\r\n| 1136 | 2020-02-03 00:00:00 |  |\r\n| 1137 | 2020-02-02 00:00:00 |  |\r\n| 1138 | 2020-02-01 00:00:00 |  |\r\n| 1139 | 2020-01-31 00:00:00 |  |\r\n| 1140 | 2020-01-30 00:00:00 |  |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 04 top 10 dates and states for hospitalizations\r\n\r\nSELECT\r\n  dt \"Date\"\r\n, state\r\n, hospincrease \"New Increase\"\r\nFROM\r\n  daily\r\nORDER BY\r\n  CAST(hospincrease AS INTEGER) DESC\r\nLIMIT\r\n  10\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 10 rows in set (0.01 sec)\r\n| ROW | Date | state | New Increase |\r\n| ---: | :---: | :--- | ---: |\r\n| 1 | 2020-07-10 00:00:00 | FL | 6974 |\r\n| 2 | 2020-04-09 00:00:00 | MI | 3826 |\r\n| 3 | 2020-04-07 00:00:00 | IL | 3680 |\r\n| 4 | 2020-04-06 00:00:00 | NJ | 2390 |\r\n| 5 | 2020-04-11 00:00:00 | CA | 2339 |\r\n| 6 | 2020-04-14 00:00:00 | CA | 2148 |\r\n| 7 | 2020-04-07 00:00:00 | PA | 1665 |\r\n| 8 | 2020-04-25 00:00:00 | IN | 1515 |\r\n| 9 | 2020-05-01 00:00:00 | GA | 1500 |\r\n| 10 | 2020-04-21 00:00:00 | MD | 1433 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 31 rows in set (0.01 sec)\r\n| ROW | date | state | positive | probablecases | negative | pending | totaltestresultssource | totaltestresults | hospitalizedcurrently | hospitalizedcumulative | inicucurrently | inicucumulative | onventilatorcurrently | onventilatorcumulative | recovered | lastupdateet | datemodified | checktimeet | death | hospitalized | hospitalizeddischarged | datechecked | totaltestsviral | positivetestsviral | negativetestsviral | positivecasesviral | deathconfirmed | deathprobable | totaltestencountersviral | totaltestspeopleviral | totaltestsantibody | positivetestsantibody | negativetestsantibody | totaltestspeopleantibody | positivetestspeopleantibody | negativetestspeopleantibody | totaltestspeopleantigen | positivetestspeopleantigen | totaltestsantigen | positivetestsantigen | fips | positiveincrease | negativeincrease | total | totaltestresultsincrease | posneg | dataqualitygrade | deathincrease | hospitalizedincrease | hash | commercialscore | negativeregularscore | negativescore | positivescore | score | grade | dt | hospincrease |\r\n| ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---: | ---: |\r\n| 1 | 20200731 | FL | 463357 |  | 3157702 | 3363 | totalTestEncountersViral | 4493776 | 8209 | 26905 |  |  |  |  |  | 7/30/2020 23:59 | 2020-07-30T23:59:00Z | 07/30 19:59 | 6966 | 26905 |  | 2020-07-30T23:59:00Z | 4712187 | 592572 | 4099817 |  | 6966 |  | 4493776 | 3633393 | 358283 | 19175 | 339059 | 353026 | 18780 | 334221 |  |  |  |  | 12 | 8900 | 39964 | 3624422 | 82202 | 3621059 |  | 257 | 519 | 5d52acd136b2a74ac44b9beaee4b18a28e328738 | 0 | 0 | 0 | 0 | 0 |  | 2020-07-31 00:00:00 | 0 |\r\n| 2 | 20200730 | FL | 454457 |  | 3117738 | 3304 | totalTestEncountersViral | 4411574 | 8395 | 26386 |  |  |  |  |  | 7/29/2020 23:59 | 2020-07-29T23:59:00Z | 07/29 19:59 | 6709 | 26386 |  | 2020-07-29T23:59:00Z | 4635026 | 580808 | 4035319 |  | 6709 |  | 4411574 | 3584193 | 358283 | 19175 | 339059 | 353026 | 18780 | 334221 |  |  |  |  | 12 | 9835 | 42396 | 3575499 | 80116 | 3572195 |  | 252 | 519 | ed9604197b49d61e7e9da45b25dc8caf4bb787eb | 0 | 0 | 0 | 0 | 0 |  | 2020-07-30 00:00:00 | 0 |\r\n| 3 | 20200729 | FL | 444622 |  | 3075342 | 3220 | totalTestEncountersViral | 4331458 | 8720 | 25867 |  |  |  |  |  | 7/28/2020 23:59 | 2020-07-28T23:59:00Z | 07/28 19:59 | 6457 | 25867 |  | 2020-07-28T23:59:00Z | 4557000 | 567610 | 3971204 |  | 6457 |  | 4331458 | 3531721 |  |  |  | 353026 | 18780 | 334221 |  |  |  |  | 12 | 9320 | 37020 | 3523184 | 74521 | 3519964 |  | 217 | 587 | 1fbcb891f11ad3fcab0b3caf4c60a37a43b9dba8 | 0 | 0 | 0 | 0 | 0 |  | 2020-07-29 00:00:00 | 0 |\r\n| 4 | 20200728 | FL | 435302 |  | 3038322 | 3017 | totalTestEncountersViral | 4256937 | 8992 | 25280 |  |  |  |  |  | 7/27/2020 23:59 | 2020-07-27T23:59:00Z | 07/27 19:59 | 6240 | 25280 |  | 2020-07-27T23:59:00Z | 4485040 | 555415 | 3912374 |  | 6240 |  | 4256937 | 3485141 |  |  |  | 353026 | 18780 | 334221 |  |  |  |  | 12 | 9138 | 39572 | 3476641 | 76414 | 3473624 |  | 191 | 590 | a07431424d9df552356574ae43f0a25e16c20dc9 | 0 | 0 | 0 | 0 | 0 |  | 2020-07-28 00:00:00 | 0 |\r\n| 5 | 20200727 | FL | 426164 |  | 2998750 | 2902 | totalTestEncountersViral | 4180523 | 9098 | 24690 |  |  |  |  |  | 7/26/2020 23:59 | 2020-07-26T23:59:00Z | 07/26 19:59 | 6049 | 24690 |  | 2020-07-26T23:59:00Z | 4411284 | 542920 | 3851809 |  | 6049 |  | 4180523 | 3436270 |  |  |  | 353026 | 18780 | 334221 |  |  |  |  | 12 | 8804 | 36102 | 3427816 | 75332 | 3424914 |  | 77 | 269 | d7af5baee774314e3458ad4e3f9b9f168b99bcff | 0 | 0 | 0 | 0 | 0 |  | 2020-07-27 00:00:00 | 147 |\r\n| ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |\r\n| 27 | 20200705 | FL | 196386 |  | 2000088 | 1508 | totalTestEncountersViral | 2428240 |  | 16201 |  |  |  |  |  | 7/4/2020 23:59 | 2020-07-04T23:59:00Z | 07/04 19:59 | 3832 | 16201 |  | 2020-07-04T23:59:00Z | 2662423 | 254652 | 2402605 |  | 3832 |  | 2428240 | 2202095 |  |  |  | 271978 | 10831 | 261121 |  |  |  |  | 12 | 9856 | 43643 | 2197982 | 63788 | 2196474 |  | 29 | 161 | 59e3c446322f7ccc79f1b56704bad18255bbd77e | 0 | 0 | 0 | 0 | 0 |  | 2020-07-05 00:00:00 | 0 |\r\n| 28 | 20200704 | FL | 186530 |  | 1956445 | 1672 | totalTestEncountersViral | 2364452 |  | 16040 |  |  |  |  |  | 7/3/2020 23:59 | 2020-07-03T23:59:00Z | 07/03 19:59 | 3803 | 16040 |  | 2020-07-03T23:59:00Z | 2595006 | 242571 | 2347444 |  | 3803 |  | 2364452 | 2148327 |  |  |  | 236304 | 9575 | 226699 |  |  |  |  | 12 | 11330 | 53679 | 2144647 | 77840 | 2142975 |  | 18 | 245 | 292e1bc6da52c871457a97e746c7e00c1c7c5808 | 0 | 0 | 0 | 0 | 0 |  | 2020-07-04 00:00:00 | 0 |\r\n| 29 | 20200703 | FL | 175200 |  | 1902766 | 1717 | totalTestEncountersViral | 2286612 |  | 15795 |  |  |  |  |  | 7/2/2020 23:59 | 2020-07-02T23:59:00Z | 07/02 19:59 | 3785 | 15795 |  | 2020-07-02T23:59:00Z | 2513115 | 228506 | 2279841 |  | 3785 |  | 2286612 | 2083056 |  |  |  | 236304 | 9575 | 226699 |  |  |  |  | 12 | 9324 | 39689 | 2079683 | 60623 | 2077966 |  | 67 | 341 | c8db03f219f0b308fb21ec88ac48d522320358fd | 0 | 0 | 0 | 0 | 0 |  | 2020-07-03 00:00:00 | 0 |\r\n| 30 | 20200702 | FL | 165876 |  | 1863077 | 1683 | totalTestEncountersViral | 2225989 |  | 15454 |  |  |  |  |  | 7/1/2020 23:59 | 2020-07-01T23:59:00Z | 07/01 19:59 | 3718 | 15454 |  | 2020-07-01T23:59:00Z | 2449162 | 216375 | 2228207 |  | 3718 |  | 2225989 | 2033794 |  |  |  | 236304 | 9575 | 226699 |  |  |  |  | 12 | 9442 | 41720 | 2030636 | 62493 | 2028953 |  | 68 | 329 | 0a1db183f521346a169f057d3619c79c58f4bd51 | 0 | 0 | 0 | 0 | 0 |  | 2020-07-02 00:00:00 | 0 |\r\n| 31 | 20200701 | FL | 156434 |  | 1821357 | 2094 | totalTestEncountersViral | 2163496 |  | 15125 |  |  |  |  |  | 6/30/2020 23:59 | 2020-06-30T23:59:00Z | 06/30 19:59 | 3650 | 15125 |  | 2020-06-30T23:59:00Z | 2380131 | 203480 | 2172217 |  | 3650 |  | 2163496 | 1981915 |  |  |  | 236304 | 9575 | 226699 |  |  |  |  | 12 | 6545 | 28796 | 1979885 | 41848 | 1977791 |  | 46 | 246 | eecbc049636fa44f1fa367f7d37cecfeaddd632c | 0 | 0 | 0 | 0 | 0 |  | 2020-07-01 00:00:00 | 0 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 05 TOP 10 dates and states for hospitalizations\r\n\r\nSELECT\r\n  dt \"Date\"\r\n, state\r\n, deathincrease \r\nFROM\r\n  daily\r\nORDER BY\r\n  CAST(deathincrease AS INTEGER) DESC\r\nLIMIT\r\n  10\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 10 rows in set (0.01 sec)\r\n| ROW | Date | state | deathincrease |\r\n| ---: | :---: | :--- | :--- |\r\n| 1 | 2020-12-28 00:00:00 | FL | 99 |\r\n| 2 | 2020-12-06 00:00:00 | IL | 99 |\r\n| 3 | 2021-02-17 00:00:00 | GA | 99 |\r\n| 4 | 2021-01-05 00:00:00 | TN | 99 |\r\n| 5 | 2020-12-20 00:00:00 | PA | 99 |\r\n| 6 | 2020-12-10 00:00:00 | IA | 99 |\r\n| 7 | 2021-02-24 00:00:00 | NJ | 99 |\r\n| 8 | 2021-02-20 00:00:00 | VA | 99 |\r\n| 9 | 2021-02-12 00:00:00 | PA | 99 |\r\n| 10 | 2020-11-25 00:00:00 | FL | 99 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 06 find data for a particular month for a state\r\n\r\nSELECT *\r\nFROM daily\r\nWHERE EXTRACT(MONTH FROM dt) = 7\r\n-- Filter for July (month number 7)\r\n\r\n-- filter by state (e.g., 'FL'), you can add:\r\nAND state = 'FL'\r\nLIMIT 5\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 5 rows in set (0.01 sec)\r\n| ROW | date | state | positive | probablecases | negative | pending | totaltestresultssource | totaltestresults | hospitalizedcurrently | hospitalizedcumulative | inicucurrently | inicucumulative | onventilatorcurrently | onventilatorcumulative | recovered | lastupdateet | datemodified | checktimeet | death | hospitalized | hospitalizeddischarged | datechecked | totaltestsviral | positivetestsviral | negativetestsviral | positivecasesviral | deathconfirmed | deathprobable | totaltestencountersviral | totaltestspeopleviral | totaltestsantibody | positivetestsantibody | negativetestsantibody | totaltestspeopleantibody | positivetestspeopleantibody | negativetestspeopleantibody | totaltestspeopleantigen | positivetestspeopleantigen | totaltestsantigen | positivetestsantigen | fips | positiveincrease | negativeincrease | total | totaltestresultsincrease | posneg | dataqualitygrade | deathincrease | hospitalizedincrease | hash | commercialscore | negativeregularscore | negativescore | positivescore | score | grade | dt | hospincrease |\r\n| ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---: | ---: |\r\n| 1 | 20200731 | FL | 463357 |  | 3157702 | 3363 | totalTestEncountersViral | 4493776 | 8209 | 26905 |  |  |  |  |  | 7/30/2020 23:59 | 2020-07-30T23:59:00Z | 07/30 19:59 | 6966 | 26905 |  | 2020-07-30T23:59:00Z | 4712187 | 592572 | 4099817 |  | 6966 |  | 4493776 | 3633393 | 358283 | 19175 | 339059 | 353026 | 18780 | 334221 |  |  |  |  | 12 | 8900 | 39964 | 3624422 | 82202 | 3621059 |  | 257 | 519 | 5d52acd136b2a74ac44b9beaee4b18a28e328738 | 0 | 0 | 0 | 0 | 0 |  | 2020-07-31 00:00:00 | 0 |\r\n| 2 | 20200730 | FL | 454457 |  | 3117738 | 3304 | totalTestEncountersViral | 4411574 | 8395 | 26386 |  |  |  |  |  | 7/29/2020 23:59 | 2020-07-29T23:59:00Z | 07/29 19:59 | 6709 | 26386 |  | 2020-07-29T23:59:00Z | 4635026 | 580808 | 4035319 |  | 6709 |  | 4411574 | 3584193 | 358283 | 19175 | 339059 | 353026 | 18780 | 334221 |  |  |  |  | 12 | 9835 | 42396 | 3575499 | 80116 | 3572195 |  | 252 | 519 | ed9604197b49d61e7e9da45b25dc8caf4bb787eb | 0 | 0 | 0 | 0 | 0 |  | 2020-07-30 00:00:00 | 0 |\r\n| 3 | 20200729 | FL | 444622 |  | 3075342 | 3220 | totalTestEncountersViral | 4331458 | 8720 | 25867 |  |  |  |  |  | 7/28/2020 23:59 | 2020-07-28T23:59:00Z | 07/28 19:59 | 6457 | 25867 |  | 2020-07-28T23:59:00Z | 4557000 | 567610 | 3971204 |  | 6457 |  | 4331458 | 3531721 |  |  |  | 353026 | 18780 | 334221 |  |  |  |  | 12 | 9320 | 37020 | 3523184 | 74521 | 3519964 |  | 217 | 587 | 1fbcb891f11ad3fcab0b3caf4c60a37a43b9dba8 | 0 | 0 | 0 | 0 | 0 |  | 2020-07-29 00:00:00 | 0 |\r\n| 4 | 20200728 | FL | 435302 |  | 3038322 | 3017 | totalTestEncountersViral | 4256937 | 8992 | 25280 |  |  |  |  |  | 7/27/2020 23:59 | 2020-07-27T23:59:00Z | 07/27 19:59 | 6240 | 25280 |  | 2020-07-27T23:59:00Z | 4485040 | 555415 | 3912374 |  | 6240 |  | 4256937 | 3485141 |  |  |  | 353026 | 18780 | 334221 |  |  |  |  | 12 | 9138 | 39572 | 3476641 | 76414 | 3473624 |  | 191 | 590 | a07431424d9df552356574ae43f0a25e16c20dc9 | 0 | 0 | 0 | 0 | 0 |  | 2020-07-28 00:00:00 | 0 |\r\n| 5 | 20200727 | FL | 426164 |  | 2998750 | 2902 | totalTestEncountersViral | 4180523 | 9098 | 24690 |  |  |  |  |  | 7/26/2020 23:59 | 2020-07-26T23:59:00Z | 07/26 19:59 | 6049 | 24690 |  | 2020-07-26T23:59:00Z | 4411284 | 542920 | 3851809 |  | 6049 |  | 4180523 | 3436270 |  |  |  | 353026 | 18780 | 334221 |  |  |  |  | 12 | 8804 | 36102 | 3427816 | 75332 | 3424914 |  | 77 | 269 | d7af5baee774314e3458ad4e3f9b9f168b99bcff | 0 | 0 | 0 | 0 | 0 |  | 2020-07-27 00:00:00 | 147 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 07 Show each state that has admits to the ICU\r\nSELECT \r\nCAST(inicucurrently AS INTEGER) \"In ICU\", state\r\nFROM daily d1\r\nWHERE EXTRACT(MONTH FROM dt) = 7\r\n-- Filter for July (month number 7)\r\nAND EXISTS (\r\n\tSELECT 1 FROM daily d2\r\n\tWHERE d2.hash = d1.hash\r\n\tAND d2.inicucurrently != ''\r\n)\r\nORDER BY \"In ICU\" DESC",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 884 rows in set (0.01 sec)\r\n| ROW | In ICU | state |\r\n| ---: | ---: | :--- |\r\n| 1 | 3281 | TX |\r\n| 2 | 3281 | TX |\r\n| 3 | 3281 | TX |\r\n| 4 | 3281 | TX |\r\n| 5 | 3281 | TX |\r\n| ... | ... | ... |\r\n| 880 | 2 | GU |\r\n| 881 | 2 | GU |\r\n| 882 | 2 | RI |\r\n| 883 | 2 | GU |\r\n| 884 | 2 | GU |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "SELECT pg_typeof(positiveincrease) AS data_type\r\nFROM daily\r\nLIMIT 1;  -- Limiting to 1 row to get the data type of the first row\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "Note that the data of positiveincrease comes in a text data from the web. \r\n`[Query Result]` 1 row in set (0.00 sec)\r\n| ROW | data_type |\r\n| ---: | :---: |\r\n| 1 | text |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "### Notes about query 8\r\n\r\nI wanted to see the percentage and in descending order. The source data is text, this causes a few problems when trying to cast it to a number and also doesn't look great. Using Postgres in this case gives more flexibility in the way numbers are displayed, however, I could not substitute a variable for the state as I would have using SQL Server. Nonetheless, the cell below displays the positivity rate per day and per state. ",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 08 What is the positivity rate by a particular day?\r\n\r\nSELECT\r\n  dt AS DATE\r\n, totaltestresultsincrease \"Increases by Test Results\"\r\n, positiveincrease\r\n, negativeincrease\r\n,TO_CHAR ( COALESCE( CAST(positiveincrease AS REAL) / NULLIF(CAST(totaltestresultsincrease AS REAL),0) ,0 ) * 100 ,'FM999999990.99' ) || '%' AS positiv_pct\r\nFROM daily\r\nWHERE 1 = 1\r\nAND state = 'MD'\r\nORDER BY COALESCE(CAST(positiveincrease AS REAL) / NULLIF(CAST(totaltestresultsincrease AS REAL ), 0) , 0) DESC\r\nLIMIT 25\r\n;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 25 rows in set (0.01 sec)\r\n| ROW | date | Increases by Test Results | positiveincrease | negativeincrease | positiv_pct |\r\n| ---: | :---: | :--- | :--- | :--- | :--- |\r\n| 1 | 2020-04-14 00:00:00 | 1583 | 536 | 1446 | 33.86% |\r\n| 2 | 2020-05-01 00:00:00 | 5278 | 1730 | 4894 | 32.78% |\r\n| 3 | 2020-05-19 00:00:00 | 5757 | 1784 | 5368 | 30.99% |\r\n| 4 | 2020-04-25 00:00:00 | 4486 | 1150 | 3257 | 25.64% |\r\n| 5 | 2020-04-23 00:00:00 | 3906 | 962 | 2609 | 24.63% |\r\n| ... | ... | ... | ... | ... | ... |\r\n| 21 | 2020-04-11 00:00:00 | 3632 | 726 | 2064 | 19.99% |\r\n| 22 | 2020-04-10 00:00:00 | 3924 | 783 | 2136 | 19.95% |\r\n| 23 | 2020-05-02 00:00:00 | 5128 | 1001 | 3538 | 19.52% |\r\n| 24 | 2020-04-18 00:00:00 | 3776 | 736 | 2625 | 19.49% |\r\n| 25 | 2020-04-19 00:00:00 | 2739 | 522 | 1999 | 19.06% |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 09 What is the Positivity rate for patients in the ICU?\r\nSELECT\r\n  dt \"Date\"\r\n, hospitalizedcurrently \"Currently Hospitalized\"\r\n, inicucurrently \"Currently in ICU\"\r\n, TO_CHAR (\r\n    COALESCE(\r\n      CAST(inicucurrently AS DOUBLE PRECISION) / NULLIF(hospitalizedcurrently, 0)\r\n    , 0\r\n    )\r\n  , 'FM999999990.99'\r\n  ) AS \"Percent in ICU\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state = 'NY'\r\n  AND CAST(inicucurrently AS DOUBLE PRECISION) / NULLIF(hospitalizedcurrently, 0) > 0\r\nORDER BY\r\n  CAST(inicucurrently AS DOUBLE PRECISION) / NULLIF(hospitalizedcurrently, 0) DESC\r\n, dt\r\nLIMIT 75\r\n;",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "We can see there's not a lot of variability for the first 75 rows. \r\n\r\n`[Query Result]` 75 rows in set (0.01 sec)\r\n| ROW | Date | Currently Hospitalized | Currently in ICU | Percent in ICU |\r\n| ---: | :---: | ---: | :--- | :--- |\r\n| 1 | 2020-05-03 00:00:00 | 9786 | 3430 | 0.35 |\r\n| 2 | 2020-05-04 00:00:00 | 9647 | 3330 | 0.35 |\r\n| 3 | 2020-05-07 00:00:00 | 8665 | 2976 | 0.34 |\r\n| 4 | 2020-05-08 00:00:00 | 8196 | 2811 | 0.34 |\r\n| 5 | 2020-05-10 00:00:00 | 7262 | 2488 | 0.34 |\r\n| ... | ... | ... | ... | ... |\r\n| 71 | 2020-06-08 00:00:00 | 2371 | 678 | 0.29 |\r\n| 72 | 2020-04-16 00:00:00 | 17735 | 5071 | 0.29 |\r\n| 73 | 2020-06-18 00:00:00 | 1358 | 388 | 0.29 |\r\n| 74 | 2020-09-16 00:00:00 | 483 | 138 | 0.29 |\r\n| 75 | 2020-06-11 00:00:00 | 2042 | 581 | 0.28 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 10 (for a chart) What is the Positivity rate for patients in the ICU?\r\nSELECT\r\n  dt \"Date\"\r\n, CAST(inicucurrently AS DOUBLE PRECISION) / NULLIF(hospitalizedcurrently, 0) \"ICU Percentage\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state = 'NY'\r\n  AND CAST(inicucurrently AS DOUBLE PRECISION) / NULLIF(hospitalizedcurrently, 0) > 0\r\nORDER BY\r\n  CAST(inicucurrently AS DOUBLE PRECISION) / NULLIF(hospitalizedcurrently, 0) DESC\r\n, dt\r\n;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "All 347 results are shown in this chart showing various peaks and valleys. \r\n\r\n![](res/2024-06-27-17-48-57.png)",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 11. Percent Admitted to the ICU for a particular month\r\n\r\nSELECT\r\n  dt \"Date\"\r\n, hospitalizedcurrently \"Hospitalized\"\r\n, inicucurrently \"ICU Pts\"\r\n-- , CAST(inicucurrently AS DOUBLE PRECISION) / CAST(hospitalizedcurrently AS DOUBLE PRECISION) AS \"Percent in ICU\"\r\n, TO_CHAR((CAST(inicucurrently AS DOUBLE PRECISION) / CAST(hospitalizedcurrently AS DOUBLE PRECISION)) * 100, 'FM999.00') || '%' AS \"Percent in ICU\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state = 'NY'\r\n  AND CAST(inicucurrently AS DOUBLE PRECISION) / CAST(hospitalizedcurrently AS DOUBLE PRECISION) > 0\r\n  AND EXTRACT(\r\n    MONTH\r\n    FROM\r\n      dt:: DATE\r\n  ) = 12\r\nORDER BY\r\n  dt\r\n;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 31 rows in set (0.01 sec)\r\n| ROW | Date | Hospitalized | ICU Pts | Percent in ICU |\r\n| ---: | :---: | ---: | :--- | :--- |\r\n| 1 | 2020-12-01 00:00:00 | 3774 | 718 | 19.02% |\r\n| 2 | 2020-12-02 00:00:00 | 3924 | 742 | 18.91% |\r\n| 3 | 2020-12-03 00:00:00 | 4063 | 783 | 19.27% |\r\n| 4 | 2020-12-04 00:00:00 | 4222 | 795 | 18.83% |\r\n| 5 | 2020-12-05 00:00:00 | 4318 | 825 | 19.11% |\r\n| ... | ... | ... | ... | ... |\r\n| 27 | 2020-12-27 00:00:00 | 7183 | 1187 | 16.53% |\r\n| 28 | 2020-12-28 00:00:00 | 7559 | 1222 | 16.17% |\r\n| 29 | 2020-12-29 00:00:00 | 7814 | 1224 | 15.66% |\r\n| 30 | 2020-12-30 00:00:00 | 7892 | 1250 | 15.84% |\r\n| 31 | 2020-12-31 00:00:00 | 7935 | 1276 | 16.08% |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 12. (for a chart) Percent Admitted to the ICU for a particular month\r\n\r\nSELECT\r\n  dt \"Date\"\r\n, CAST(inicucurrently AS DOUBLE PRECISION) / CAST(hospitalizedcurrently AS DOUBLE PRECISION) AS \"Percent in ICU\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state = 'NY'\r\n  AND CAST(inicucurrently AS DOUBLE PRECISION) / CAST(hospitalizedcurrently AS DOUBLE PRECISION) > 0\r\n  AND EXTRACT(\r\n    MONTH\r\n    FROM\r\n      dt:: DATE\r\n  ) = 12\r\nORDER BY\r\n  dt\r\n;\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 31 rows in set (0.01 sec)\r\n| ROW | Date | Percent in ICU |\r\n| ---: | :---: | ---: |\r\n| 1 | 2020-12-01 00:00:00 | 0.1902490726020138 |\r\n| 2 | 2020-12-02 00:00:00 | 0.1890927624872579 |\r\n| 3 | 2020-12-03 00:00:00 | 0.19271474280088605 |\r\n| 4 | 2020-12-04 00:00:00 | 0.18829938417811465 |\r\n| 5 | 2020-12-05 00:00:00 | 0.19106067623899953 |\r\n| ... | ... | ... |\r\n| 27 | 2020-12-27 00:00:00 | 0.1652512877627732 |\r\n| 28 | 2020-12-28 00:00:00 | 0.16166159544913347 |\r\n| 29 | 2020-12-29 00:00:00 | 0.15664192475044791 |\r\n| 30 | 2020-12-30 00:00:00 | 0.15838824125696907 |\r\n| 31 | 2020-12-31 00:00:00 | 0.16080655324511658 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 12. Percent in ICU for All states (using a CTE to handle null values)\r\n\r\nWITH\r\n  icu_percentage_calc AS (\r\n    SELECT\r\n      state \r\n    , inicucurrently\r\n    , hospitalizedcurrently\r\n    , CAST(inicucurrently AS DOUBLE PRECISION) / NULLIF(CAST(hospitalizedcurrently AS DOUBLE PRECISION), 0) AS icu_percentage\r\n    FROM\r\n      daily\r\n  )\r\nSELECT\r\n  state \"State\"\r\n, inicucurrently \"In ICU\"\r\n, hospitalizedcurrently \"Hospitalized\"\r\n, icu_percentage \"ICU Percentage\"\r\n, TO_CHAR (icu_percentage * 100, 'FM999.00') || '%' AS \"ICU Percentage (Formatted)\"\r\nFROM\r\n  icu_percentage_calc\r\nWHERE\r\n  icu_percentage > 0\r\n  AND icu_percentage < 1\r\nORDER BY\r\n  icu_percentage DESC\r\n;",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 11473 rows in set (0.07 sec)\r\n| ROW | State | In ICU | Hospitalized | ICU Percentage | ICU Percentage (Formatted) |\r\n| ---: | :--- | :--- | ---: | ---: | :--- |\r\n| 1 | ME | 11 | 12 | 0.9166666666666666 | 91.67% |\r\n| 2 | ME | 9 | 10 | 0.9 | 90.00% |\r\n| 3 | ME | 8 | 9 | 0.8888888888888888 | 88.89% |\r\n| 4 | OK | 143 | 161 | 0.8881987577639752 | 88.82% |\r\n| 5 | ME | 6 | 7 | 0.8571428571428571 | 85.71% |\r\n| ... | ... | ... | ... | ... | ... |\r\n| 11469 | KS | 2 | 403 | 0.004962779156327543 | .50% |\r\n| 11470 | KS | 2 | 403 | 0.004962779156327543 | .50% |\r\n| 11471 | KS | 2 | 403 | 0.004962779156327543 | .50% |\r\n| 11472 | KS | 1 | 329 | 0.00303951367781155 | .30% |\r\n| 11473 | KS | 1 | 329 | 0.00303951367781155 | .30% |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 13. Positive, negative and deaths by state\r\n\r\n     SELECT state\r\n          , SUM(CAST(positiveIncrease AS INTEGER)) AS positive\r\n          , SUM(CAST(totalTestResultsIncrease AS INTEGER) - CAST(positiveIncrease AS INTEGER)) negative\r\n          , SUM(CAST(deathIncrease AS INTEGER)) AS deaths\r\n       FROM daily\r\n   GROUP BY state\r\n;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 56 rows in set (0.02 sec)\r\n| ROW | state | positive | negative | deaths |\r\n| ---: | :--- | ---: | ---: | ---: |\r\n| 1 | CA | 3501341 | 46144158 | 54124 |\r\n| 2 | NH | 76859 | 1420320 | 1184 |\r\n| 3 | OR | 157079 | 3693894 | 2296 |\r\n| 4 | TX | 2686818 | 17220560 | 44451 |\r\n| 5 | ND | 100391 | 1324755 | 1478 |\r\n| ... | ... | ... | ... | ... |\r\n| 52 | VA | 585700 | 5452509 | 9596 |\r\n| 53 | AS | 0 | 2140 | 0 |\r\n| 54 | DE | 88354 | 1343588 | 1473 |\r\n| 55 | AZ | 826452 | 7081620 | 16328 |\r\n| 56 | KS | 295861 | 974682 | 4812 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 14. Hospitalizations for multiple states\r\n\r\nSELECT\r\n  dt \"Date\"\r\n, state \"State\"\r\n, MAX(CAST(hospitalizedcurrently AS INTEGER)) \"Hospitalized\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state IN ('NY', 'NJ', 'CT', 'AZ')\r\n  AND EXTRACT(\r\n    MONTH\r\n    FROM\r\n      dt:: DATE\r\n  ) = 7\r\nGROUP BY\r\n  state\r\n, dt\r\n;",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 124 rows in set (0.01 sec)\r\n| ROW | Date | State | Hospitalized |\r\n| ---: | :---: | :--- | ---: |\r\n| 1 | 2020-07-01 00:00:00 | AZ | 2876 |\r\n| 2 | 2020-07-02 00:00:00 | AZ | 2938 |\r\n| 3 | 2020-07-03 00:00:00 | AZ | 3013 |\r\n| 4 | 2020-07-04 00:00:00 | AZ | 3113 |\r\n| 5 | 2020-07-05 00:00:00 | AZ | 3182 |\r\n| ... | ... | ... | ... |\r\n| 120 | 2020-07-27 00:00:00 | NY | 642 |\r\n| 121 | 2020-07-28 00:00:00 | NY | 648 |\r\n| 122 | 2020-07-29 00:00:00 | NY | 619 |\r\n| 123 | 2020-07-30 00:00:00 | NY | 586 |\r\n| 124 | 2020-07-31 00:00:00 | NY | 576 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 15. Testing by month for a state\r\n\r\nSELECT\r\n  TO_CHAR (dt:: DATE, 'MM') AS \"Month\"\r\n, TO_CHAR (dt:: DATE, 'YYYY') AS \"Year\"\r\n, SUM(CAST(totaltestresultsincrease AS INTEGER)) AS \"Total Testing Increase\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state = 'NY'\r\nGROUP BY\r\n  TO_CHAR (dt:: DATE, 'YYYY')\r\n, TO_CHAR (dt:: DATE, 'MM')\r\nORDER BY\r\n  TO_CHAR (dt:: DATE, 'YYYY')\r\n, TO_CHAR (dt:: DATE, 'MM')\r\n;",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 13 rows in set (0.01 sec)\r\n| ROW | Month | Year | Total Testing Increase |\r\n| ---: | :--- | :--- | ---: |\r\n| 1 | 03 | 2020 | 205233 |\r\n| 2 | 04 | 2020 | 695403 |\r\n| 3 | 05 | 2020 | 1163189 |\r\n| 4 | 06 | 2020 | 1851113 |\r\n| 5 | 07 | 2020 | 1974299 |\r\n| ... | ... | ... | ... |\r\n| 9 | 11 | 2020 | 4893780 |\r\n| 10 | 12 | 2020 | 5863562 |\r\n| 11 | 01 | 2021 | 6876691 |\r\n| 12 | 02 | 2021 | 5945164 |\r\n| 13 | 03 | 2021 | 1588185 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 16. Find the relationship of positive and negative tests for a state and date\r\n\r\nSELECT\r\n  negativeincrease AS \"Negative Increase\"\r\n, CAST(totalTestResultsIncrease AS INTEGER) - CAST(positiveincrease AS INTEGER) AS \"Positive Increase\"\r\n, CAST(positiveincrease AS DOUBLE PRECISION) / NULLIF(\r\n    CAST(totalTestResultsIncrease AS DOUBLE PRECISION)\r\n  , 0\r\n  ) AS \"Percent Positive\"\r\n, TO_CHAR ((\r\n      CAST(positiveincrease AS DOUBLE PRECISION) / NULLIF(\r\n        CAST(totalTestResultsIncrease AS DOUBLE PRECISION)\r\n      , 0\r\n      )\r\n    ) * 100\r\n  , 'FM999.00'\r\n  ) || '%' AS \"Percent Positive (Formatted)\"\r\nFROM\r\n  daily\r\nWHERE\r\n  1 = 1\r\n  AND dt BETWEEN '2020-08-07' AND '2020-09-07'\r\n  AND state = 'MD'\r\nORDER BY\r\n  dt DESC\r\n;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 32 rows in set (0.01 sec)\r\n| ROW | Negative Increase | Positive Increase | Percent Positive | Percent Positive (Formatted) |\r\n| ---: | :--- | ---: | ---: | :--- |\r\n| 1 | 11101 | 21606 | 0.03415288332588288 | 3.42% |\r\n| 2 | 8357 | 16211 | 0.030616516175327395 | 3.06% |\r\n| 3 | 12214 | 27416 | 0.027525539160045402 | 2.75% |\r\n| 4 | 13041 | 28614 | 0.02782590969320151 | 2.78% |\r\n| 5 | 11266 | 24267 | 0.027764423076923075 | 2.78% |\r\n| ... | ... | ... | ... | ... |\r\n| 28 | 10064 | 16560 | 0.03412073490813648 | 3.41% |\r\n| 29 | 16710 | 28777 | 0.025565488283895436 | 2.56% |\r\n| 30 | 18900 | 39750 | 0.022669158143194337 | 2.27% |\r\n| 31 | 11924 | 20032 | 0.037247080309511224 | 3.72% |\r\n| 32 | 13882 | 27782 | 0.02802365042157926 | 2.80% |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 17. Weekly Positive Rate for a State\r\nSELECT\r\n    EXTRACT(WEEK FROM dt::DATE) AS \"Week\"\r\n  , SUM(CAST(positiveincrease AS INTEGER)) AS \"Total Positive\"\r\n  , SUM(CAST(totaltestresultsincrease AS INTEGER) - CAST(positiveincrease AS INTEGER)) AS \"Total Negative\"\r\n  , SUM(CAST(totaltestresultsincrease AS INTEGER)) AS \"Total Tests\"\r\n  , CAST(SUM(CAST(positiveincrease AS INTEGER)) AS DOUBLE PRECISION) / NULLIF(SUM(CAST(totaltestresultsincrease AS INTEGER)), 0) AS \"Positive Rate\"\r\n  , TO_CHAR((CAST(SUM(CAST(positiveincrease AS INTEGER)) AS DOUBLE PRECISION) / NULLIF(SUM(CAST(totaltestresultsincrease AS INTEGER)), 0)) * 100, 'FM999.00') || '%' AS \"Formatted Positive Rate\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state = 'NY'\r\nGROUP BY\r\n  EXTRACT(WEEK FROM dt::DATE)\r\nORDER BY\r\n  EXTRACT(WEEK FROM dt::DATE);\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "![](res/2024-06-28-06-19-57.png)",
+   "metadata": {}
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "### A comment on why there are 53 weeks listed\r\n\r\n---\r\n\r\n**Why Some Years Have 53 Weeks:**\r\n\r\nThe ISO week date system, which is used to number weeks, can result in some years having 53 weeks instead of the usual 52. This happens because:\r\n\r\n1. Weeks start on Monday.\r\n2. The first week of the year is the one that contains the first Thursday of the year.\r\n\r\nAs a result, certain years have 53 weeks if:\r\n- The year starts on a Thursday.\r\n- The year starts on a Wednesday in a leap year.\r\n\r\nFor example, the year 2020 had 53 weeks because January 1, 2020, was a Wednesday, and the first Thursday was January 2, 2020. Therefore, week 1 of 2020 started on December 30, 2019, and ended on January 5, 2020.\r\n\r\nTo verify the number of weeks in each year, you can run a query that counts the distinct weeks per year in the dataset:\r\n\r\n```sql\r\nSELECT\r\n  EXTRACT(YEAR FROM dt::DATE) AS year,\r\n  COUNT(DISTINCT EXTRACT(WEEK FROM dt::DATE)) AS week_count\r\nFROM\r\n  daily\r\nGROUP BY\r\n  EXTRACT(YEAR FROM dt::DATE)\r\nORDER BY\r\n  year;\r\n```\r\n\r\nThis query will help identify which years have 53 weeks.\r\n\r\nNote: PostgreSQL uses the ISO week date system, which starts on Monday.",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 18. Monthly Positive Rate for a State\r\n\r\nSELECT\r\n    EXTRACT(MONTH FROM dt::DATE) AS \"Month\"\r\n  , SUM(CAST(positiveincrease AS INTEGER)) AS \"Total Positive\"\r\n  , SUM(CAST(totaltestresultsincrease AS INTEGER) - CAST(positiveincrease AS INTEGER)) AS \"Total Negative\"\r\n  , SUM(CAST(totaltestresultsincrease AS INTEGER)) AS \"Total Tests\"\r\n  , CAST(SUM(CAST(positiveincrease AS INTEGER)) AS DOUBLE PRECISION) / NULLIF(SUM(CAST(totaltestresultsincrease AS INTEGER)), 0) AS \"Positive Rate\"\r\n  , TO_CHAR((CAST(SUM(CAST(positiveincrease AS INTEGER)) AS DOUBLE PRECISION) / NULLIF(SUM(CAST(totaltestresultsincrease AS INTEGER)), 0)) * 100, 'FM999.00') || '%' AS \"Positive Rate (Formatted)\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state = 'NY'\r\nGROUP BY\r\n  EXTRACT(MONTH FROM dt::DATE)\r\nORDER BY\r\n  EXTRACT(MONTH FROM dt::DATE);\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 19. Yearly Positive Rate for a State\r\n\r\nSELECT\r\n    EXTRACT(YEAR FROM dt::DATE) AS \"Year\"\r\n  , SUM(CAST(positiveincrease AS INTEGER)) AS \"Total Positive\"\r\n  , SUM(CAST(totaltestresultsincrease AS INTEGER) - CAST(positiveincrease AS INTEGER)) AS \"Total Negative\"\r\n  , SUM(CAST(totaltestresultsincrease AS INTEGER)) AS \"Total Tests\"\r\n  , CAST(SUM(CAST(positiveincrease AS INTEGER)) AS DOUBLE PRECISION) / NULLIF(SUM(CAST(totaltestresultsincrease AS INTEGER)), 0) AS \"Positive Rate\"\r\n  , TO_CHAR((CAST(SUM(CAST(positiveincrease AS INTEGER)) AS DOUBLE PRECISION) / NULLIF(SUM(CAST(totaltestresultsincrease AS INTEGER)), 0)) * 100, 'FM999.00') || '%' AS \"Positive Rate (Formatted)\"\r\nFROM\r\n  daily\r\nWHERE\r\n  state = 'NY'\r\nGROUP BY\r\n  EXTRACT(YEAR FROM dt::DATE)\r\nORDER BY\r\n  EXTRACT(YEAR FROM dt::DATE);\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 20. How many days had more than 50 deaths for a state\r\n\r\nSELECT COUNT(*) AS \"Death Increase by State\"\r\nFROM daily\r\nWHERE CAST(deathincrease AS INTEGER) > 50\r\nAND state = 'FL';\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 21. Average, standard deviation, and coefficient of variation for a\r\n--     state\r\n\r\nWITH monthly_positive_cases AS (\r\n    SELECT\r\n        state AS st\r\n      , TO_CHAR(dt::DATE, 'MM') AS mnth\r\n      , SUM(CAST(positiveincrease AS DOUBLE PRECISION)) AS poscases\r\n    FROM\r\n        daily\r\n    WHERE\r\n        state = 'NY'\r\n    GROUP BY\r\n        state\r\n      , TO_CHAR(dt::DATE, 'MM')\r\n)\r\n\r\nSELECT\r\n    st AS \"State\"\r\n  , AVG(poscases) AS \"Average Positive Cases\"\r\n  , STDDEV_SAMP(poscases) AS \"Standard Deviation of Positive Cases\"\r\n  , STDDEV_SAMP(poscases) / NULLIF(AVG(poscases), 0) AS \"Coefficient of Variation\"\r\nFROM\r\n    monthly_positive_cases\r\nGROUP BY\r\n    st;\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 22. Deaths for a specific county\r\n\r\nSELECT\r\n  *\r\nFROM\r\n  covidcounty\r\nWHERE\r\n  state = 'Maryland'\r\n  AND county IN ('Wicomico', 'Somerset', 'Worcester')\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 2352 rows in set (0.14 sec)\r\n| ROW | date | county | state | fips | cases | deaths | id | id1 | newdeaths |\r\n| ---: | :--- | :--- | :--- | :--- | :--- | :--- | ---: | ---: | :--- |\r\n| 1 | 2020-03-20 | Wicomico | Maryland | 24045 | 1 | 0 | 948966 | 948967 | 0 |\r\n| 2 | 2020-03-22 | Somerset | Maryland | 24039 | 1 | 0 | 945065 | 945066 | 0 |\r\n| 3 | 2020-03-23 | Somerset | Maryland | 24039 | 1 | 0 | 945066 | 945067 | 0 |\r\n| 4 | 2020-03-24 | Somerset | Maryland | 24039 | 1 | 0 | 945067 | 945068 | 0 |\r\n| 5 | 2020-03-25 | Somerset | Maryland | 24039 | 1 | 0 | 945068 | 945069 | 0 |\r\n| ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |\r\n| 2348 | 2022-05-09 | Worcester | Maryland | 24047 | 8762 | 160 | 950531 | 950532 | 0 |\r\n| 2349 | 2022-05-10 | Worcester | Maryland | 24047 | 8787 | 160 | 950532 | 950533 | 0 |\r\n| 2350 | 2022-05-11 | Worcester | Maryland | 24047 | 8797 | 160 | 950533 | 950534 | 0 |\r\n| 2351 | 2022-05-12 | Worcester | Maryland | 24047 | 8813 | 160 | 950534 | 950535 | 0 |\r\n| 2352 | 2022-05-13 | Worcester | Maryland | 24047 | 8826 | 160 | 950535 | 950536 | 0 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 23.\r\n-- Total deaths by county for state\r\n\r\nSELECT county, sum(newdeaths::numeric) AS deaths\r\nFROM covidcounty\r\nWHERE state = 'Maryland'\r\nGROUP BY county\r\nORDER BY deaths DESC;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 25 rows in set (0.13 sec)\r\n| ROW | county | deaths |\r\n| ---: | :--- | ---: |\r\n| 1 | Baltimore | 2484 |\r\n| 2 | Prince George's | 2163 |\r\n| 3 | Montgomery | 2044 |\r\n| 4 | Baltimore city | 1777 |\r\n| 5 | Anne Arundel | 1078 |\r\n| ... | ... | ... |\r\n| 21 | Talbot | 88 |\r\n| 22 | Caroline | 80 |\r\n| 23 | Somerset | 74 |\r\n| 24 | Kent | 66 |\r\n| 25 | Unknown | 18 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 24. Deaths for a county between two dates\r\n\r\nSELECT date, state, county, cases,  deaths\r\nFROM covidcounty\r\nWHERE state = 'Maryland'\r\nAND county = 'Wicomico'\r\nAND date BETWEEN '2020-03-19' AND '2020-04-20'\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 32 rows in set (0.46 sec)\r\n| ROW | date | state | county | cases | deaths |\r\n| ---: | :--- | :--- | :--- | :--- | :--- |\r\n| 1 | 2020-03-20 | Maryland | Wicomico | 1 | 0 |\r\n| 2 | 2020-03-21 | Maryland | Wicomico | 2 | 0 |\r\n| 3 | 2020-03-22 | Maryland | Wicomico | 2 | 0 |\r\n| 4 | 2020-03-23 | Maryland | Wicomico | 4 | 0 |\r\n| 5 | 2020-03-24 | Maryland | Wicomico | 4 | 0 |\r\n| ... | ... | ... | ... | ... | ... |\r\n| 28 | 2020-04-16 | Maryland | Wicomico | 87 | 1 |\r\n| 29 | 2020-04-17 | Maryland | Wicomico | 103 | 1 |\r\n| 30 | 2020-04-18 | Maryland | Wicomico | 138 | 1 |\r\n| 31 | 2020-04-19 | Maryland | Wicomico | 145 | 3 |\r\n| 32 | 2020-04-20 | Maryland | Wicomico | 166 | 3 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 25. Total deaths by county for state between two dates\r\n\r\nSELECT county, SUM(newdeaths::numeric) AS deaths\r\nFROM covidcounty\r\nWHERE state = 'Maryland'\r\n  AND date BETWEEN '2020-03-19' AND '2020-04-20'\r\nGROUP BY county;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 25 rows in set (0.42 sec)\r\n| ROW | county | deaths |\r\n| ---: | :--- | ---: |\r\n| 1 | Allegany | 1 |\r\n| 2 | Anne Arundel | 48 |\r\n| 3 | Baltimore | 50 |\r\n| 4 | Baltimore city | 54 |\r\n| 5 | Calvert | 3 |\r\n| ... | ... | ... |\r\n| 21 | Talbot | 1 |\r\n| 22 | Unknown | 78 |\r\n| 23 | Washington | 3 |\r\n| 24 | Wicomico | 3 |\r\n| 25 | Worcester | 0 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 26. Maximum Cases and Deaths by County and State\r\n\r\nSELECT state, county, MAX(cases) AS cases, MAX(deaths::numeric) AS deaths\r\nFROM covidcounty\r\nWHERE state = 'Maryland'\r\n  AND county = 'Wicomico'\r\nGROUP BY state, county;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 1 row in set (0.15 sec)\r\n| ROW | state | county | cases | deaths |\r\n| ---: | :--- | :--- | :--- | ---: |\r\n| 1 | Maryland | Wicomico | 998 | 328 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 27. TOTAL DEATHS BY COUNTY FOR STATE(S)\r\nSELECT state, county, MAX(cases) AS cases, MAX(deaths::numeric) AS deaths\r\nFROM covidcounty\r\nWHERE state IN ('Maryland', 'Delaware')\r\nGROUP BY state, county;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 29 rows in set (0.23 sec)\r\n| ROW | state | county | cases | deaths |\r\n| ---: | :--- | :--- | :--- | ---: |\r\n| 1 | Maryland | Howard | 993 | 378 |\r\n| 2 | Delaware | New Castle | 9975 | 1424 |\r\n| 3 | Maryland | Frederick | 9884 | 525 |\r\n| 4 | Maryland | Talbot | 999 | 88 |\r\n| 5 | Maryland | Montgomery | 99676 | 2044 |\r\n| ... | ... | ... | ... | ... |\r\n| 25 | Maryland | Cecil | 998 | 259 |\r\n| 26 | Maryland | Kent | 995 | 66 |\r\n| 27 | Maryland | Calvert | 9953 | 146 |\r\n| 28 | Maryland | Washington | 9962 | 586 |\r\n| 29 | Maryland | Charles | 999 | 353 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 28. FIND DEATHS IN A MONTH FOR A STATE\r\nSELECT state, county, SUM(newdeaths::numeric) AS numdeath\r\nFROM covidcounty\r\nWHERE EXTRACT(MONTH FROM date::date) = 6\r\n  AND state = 'Maryland'\r\nGROUP BY state, county;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 25 rows in set (0.15 sec)\r\n| ROW | state | county | numdeath |\r\n| ---: | :--- | :--- | ---: |\r\n| 1 | Maryland | Allegany | 1 |\r\n| 2 | Maryland | Anne Arundel | 52 |\r\n| 3 | Maryland | Baltimore | 153 |\r\n| 4 | Maryland | Baltimore city | 106 |\r\n| 5 | Maryland | Calvert | 10 |\r\n| ... | ... | ... | ... |\r\n| 21 | Maryland | Talbot | 2 |\r\n| 22 | Maryland | Unknown | -45 |\r\n| 23 | Maryland | Washington | 16 |\r\n| 24 | Maryland | Wicomico | 14 |\r\n| 25 | Maryland | Worcester | 3 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 29. DEATHS BY COUNTY BY WEEK\r\nSELECT EXTRACT(WEEK FROM date::date) AS wk, SUM(newdeaths::numeric) AS deaths\r\nFROM covidcounty\r\nWHERE state = 'Maryland'\r\n  AND county = 'Wicomico'\r\n  AND EXTRACT(YEAR FROM date::date) = 2020\r\nGROUP BY wk\r\nORDER BY wk;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 42 rows in set (0.13 sec)\r\n| ROW | wk | deaths |\r\n| ---: | ---: | ---: |\r\n| 1 | 12 | 0 |\r\n| 2 | 13 | 1 |\r\n| 3 | 14 | 0 |\r\n| 4 | 15 | 0 |\r\n| 5 | 16 | 2 |\r\n| ... | ... | ... |\r\n| 38 | 49 | 1 |\r\n| 39 | 50 | 4 |\r\n| 40 | 51 | 8 |\r\n| 41 | 52 | 3 |\r\n| 42 | 53 | 2 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 30. COMPARE DEATHS BY COUNTY BY WEEK FOR MULTIPLE COUNTIES\r\nSELECT t.year, t.wk, t.Suffolkdeaths, t2.Westchesterdeaths\r\nFROM\r\n    (SELECT EXTRACT(YEAR FROM date::date) AS year,\r\n            EXTRACT(WEEK FROM date::date) AS wk,\r\n            SUM(newdeaths::numeric) AS Suffolkdeaths\r\n    FROM covidcounty\r\n    WHERE state = 'New York'\r\n    AND county = 'Suffolk'\r\n    GROUP BY year, wk\r\n    ORDER BY wk, year) AS t,\r\n    \r\n    (SELECT EXTRACT(YEAR FROM date::date) AS year,\r\n            EXTRACT(WEEK FROM date::date) AS wk,\r\n            SUM(newdeaths::numeric) AS Westchesterdeaths\r\n    FROM covidcounty\r\n    WHERE state = 'New York'\r\n    AND county = 'Westchester'\r\n    GROUP BY year, wk\r\n    ORDER BY wk, year) AS t2\r\n\r\nWHERE t.wk = t2.wk\r\nAND t.year = t2.year;\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 116 rows in set (0.27 sec)\r\n| ROW | year | wk | suffolkdeaths | westchesterdeaths |\r\n| ---: | ---: | ---: | ---: | ---: |\r\n| 1 | 2021 | 1 | 112 | 49 |\r\n| 2 | 2022 | 1 | 109 | 47 |\r\n| 3 | 2021 | 2 | 124 | 59 |\r\n| 4 | 2022 | 2 | 97 | 46 |\r\n| 5 | 2021 | 3 | 113 | 57 |\r\n| ... | ... | ... | ... | ... |\r\n| 112 | 2020 | 52 | 79 | 37 |\r\n| 113 | 2021 | 52 | 34 | 18 |\r\n| 114 | 2022 | 52 | 8 | 13 |\r\n| 115 | 2020 | 53 | 48 | 21 |\r\n| 116 | 2021 | 53 | 42 | 17 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "-- 31. Query tables to make sure we have the columns we need\r\n-- Query to list columns in 'county' table\r\nSELECT column_name, data_type\r\nFROM information_schema.columns\r\nWHERE table_name = 'county';\r\n\r\n-- Query to list columns in 'covidcounty' table\r\nSELECT column_name, data_type\r\nFROM information_schema.columns\r\nWHERE table_name = 'covidcounty';\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "--  31. Select NY & NJ covid deaths by county in QGIS\r\n\r\nSELECT county.geometry, county.name AS county, MAX(CAST(covidcounty.deaths AS INTEGER)) AS deaths\r\nFROM county, covidcounty\r\nWHERE covidcounty.state IN ('New York', 'New Jersey')\r\n  AND county.statefp || county.countyfp = covidcounty.fips\r\nGROUP BY county.geometry, county.name;\r\n\r\n",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "`[Query Result]` 76 rows in set (0.20 sec)\r\n| ROW | geometry | county | deaths |\r\n| ---: | :--- | :--- | ---: |\r\n| 1 |  | Albany | 523 |\r\n| 2 |  | Allegany | 155 |\r\n| 3 |  | Atlantic | 997 |\r\n| 4 |  | Bergen | 3458 |\r\n| 5 |  | Broome | 520 |\r\n| ... | ... | ... | ... |\r\n| 72 |  | Washington | 115 |\r\n| 73 |  | Wayne | 179 |\r\n| 74 |  | Westchester | 2720 |\r\n| 75 |  | Wyoming | 84 |\r\n| 76 |  | Yates | 40 |\r\n",
+   "metadata": {}
+  },
+  {
+   "kind": 1,
+   "language": "markdown",
+   "value": "![](res/2024-06-28-19-58-33.png)",
+   "metadata": {}
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  },
+  {
+   "kind": 2,
+   "language": "sql",
+   "value": "",
+   "metadata": {
+    "connectionName": "covid"
+   }
+  }
+ ],
+ "metadata": {}
+}

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite Queries with Descriptions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        h2 {
+            color: #2c3e50;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ddd;
+            overflow-x: auto;
+        }
+        .code-block {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .copy-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            padding: 5px 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .copy-btn:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+
+<h2>This point forward will be in SQLite only because it's more compatible with spatialite and the setup with QGIS.</h2>
+
+<div class="code-block">
+    <pre><code>-- Check deathincrease for Xmas day
+SELECT
+  deathincrease,
+  daily.state,
+  GEOMETRY
+FROM
+  daily,
+  state
+WHERE
+  state.stusps = daily.state
+  AND dt = '2020-12-25';</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>DROP TABLE IF EXISTS spatialtable;
+CREATE TABLE spatialtable AS
+  SELECT
+    deathincrease,
+    daily.state,
+    GEOMETRY
+FROM daily, state
+WHERE state.stusps = daily.state
+AND dt = '2020-12-25';
+SELECT recovergeometrycolumn('spatialtable', 'geometry', 4269, 'MULTIPOLYGON');</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- 02. Find avg hospitalizations, cases, and deaths by state
+SELECT
+  d1.dt,
+  AVG(CAST(d2.hospitalizedcurrently AS FLOAT)) AS avghosp,
+  AVG(CAST(d2.deathincrease AS FLOAT)) AS avgdeath,
+  AVG(CAST(d2.positiveincrease AS FLOAT)) AS avgcases,
+  d1.deathincrease
+FROM
+  daily d1,
+  daily d2
+WHERE
+  ABS(julianday(d1.dt) - julianday(d2.dt)) < 4
+  AND d1.state = 'FL'
+  AND d2.state = 'FL'
+GROUP BY
+  d1.dt,
+  d1.deathincrease
+ORDER BY
+  d1.dt DESC;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- 03. Show Avg Death Increase vs Death Increase by Day
+SELECT
+  d1.dt AS "Date",
+  AVG(CAST(d2.positiveincrease AS FLOAT)) AS "Daily Avg Cases",
+  d1.deathincrease "Death Increase"
+FROM
+  daily d1,
+  daily d2
+WHERE
+  ABS(julianday(d1.dt) - julianday(d2.dt)) < 4
+  AND d1.state = 'FL'
+  AND d2.state = 'FL'
+GROUP BY
+  d1.dt,
+  d1.deathincrease
+ORDER BY
+  d1.dt DESC;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- 04. Average Death Increases vs. Death Increases (Chart data)
+SELECT
+  d1.dt "Date",
+  AVG(CAST(d2.deathincrease AS FLOAT)) AS "Avg Death Increase",
+  d1.deathincrease "Death Increase"
+FROM
+  daily d1,
+  daily d2
+WHERE
+  ABS(julianday(d1.dt) - julianday(d2.dt)) < 4
+  AND d1.state = 'FL'
+  AND d2.state = 'FL'
+GROUP BY
+  d1.dt,
+  d1.deathincrease
+ORDER BY
+  d1.dt DESC;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>Here we see the daily fluctuations of deaths, and the average deaths per day in one chart for Florida. We can change the query above to get a different state such as California.</h2>
+<img src="res/2024-06-29-09-27-01.png" alt="Chart">
+
+<div class="code-block">
+    <pre><code>-- 05. Average Death Increases vs. Death Increases (Chart data)
+SELECT
+  d1.dt "Date",
+  AVG(CAST(d2.deathincrease AS FLOAT)) AS "Avg Death Increase",
+  d1.deathincrease "Death Increase"
+FROM
+  daily d1,
+  daily d2
+WHERE
+  ABS(julianday(d1.dt) - julianday(d2.dt)) < 4
+  AND d1.state = 'CA'
+  AND d2.state = 'CA'
+GROUP BY
+  d1.dt,
+  d1.deathincrease
+ORDER BY
+  d1.dt DESC;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>California had a higher number but also a different shape.</h2>
+<img src="res/2024-06-29-09-34-18.png" alt="Chart">
+
+<div class="code-block">
+    <pre><code>-- 06. Find avg hospitalizations, cases, and deaths by state for CA & FL
+SELECT
+  d1.dt "Date",
+  d1.state "ST",
+  AVG(CAST(d2.hospitalizedcurrently AS FLOAT)) AS "Avg Hospitalized",
+  AVG(CAST(d2.deathincrease AS FLOAT)) AS "Avg Deaths",
+  AVG(CAST(d2.positiveincrease AS FLOAT)) AS "Avg Cases",
+  d1.deathincrease "Daily Deaths"
+FROM
+  daily d1,
+  daily d2
+WHERE
+  ABS(julianday(d1.dt) - julianday(d2.dt)) < 4
+  AND d1.state = d2.state
+  AND d1.state IN ('FL', 'CA')
+GROUP BY
+  d1.dt,
+  d1.deathincrease
+ORDER BY
+  "Avg Deaths" DESC;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>Note we have to go very far down the table to find where Florida starts showing high death rates.</h2>
+
+<div class="code-block">
+    <pre><code>-- 07. Find the highest Death Rates for opposing states and the date
+SELECT
+  "Date",
+  "ST",
+  "Avg Deaths"
+FROM
+(
+SELECT
+  d1.dt "Date",
+  d1.state "ST",
+  AVG(CAST(d2.hospitalizedcurrently AS FLOAT)) AS "Avg Hospitalized",
+  AVG(CAST(d2.deathincrease AS FLOAT)) AS "Avg Deaths",
+  AVG(CAST(d2.positiveincrease AS FLOAT)) AS "Avg Cases",
+  d1.deathincrease "Daily Deaths"
+FROM
+  daily d1,
+  daily d2
+WHERE
+  ABS(julianday(d1.dt) - julianday(d2.dt)) < 4
+  AND d1.state = d2.state
+  AND d1.state IN ('FL', 'CA')
+GROUP BY
+  d1.dt,
+  d1.deathincrease
+ORDER BY
+  "Avg Deaths" DESC
+)
+GROUP BY "ST";</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>Surprisingly, this wasn't a typo, both of the highest death tolls occurred on the same day 25-Jan-2021</h2>
+
+<div class="code-block">
+    <pre><code>-- 08. Compare Positive Rates in Two Different States
+WITH monthly_stats AS (
+    SELECT strftime('%m', dt) AS mnth,
+           state,
+           sum(positiveincrease) AS totpositive,
+           sum(totalTestResultsIncrease - positiveincrease) AS totnegative
+      FROM daily
+     WHERE 1=1
+       AND state IN ('CA', 'FL')  -- Include all states you want to compare
+     GROUP BY strftime('%m', dt), state
+),
+state_stats AS (
+    SELECT mnth,
+           state,
+           totpositive,
+           totnegative,
+           totpositive + totnegative AS tottests,
+           CAST(totpositive AS REAL) / NULLIF(CAST(totpositive + totnegative AS REAL), 0) AS posrate
+      FROM monthly_stats
+)
+SELECT t2.mnth "Month",
+       t2.state AS "State 1",
+       t2.posrate AS "Positive Rate 1",
+       t3.state AS "State 2",
+       t3.posrate AS "Positive Rate 2"
+  FROM state_stats t2
+ INNER JOIN state_stats t3 ON t2.mnth = t3.mnth
+                          AND t2.state = 'CA'  -- Replace with first state of interest
+                          AND t3.state = 'FL'; -- Replace with second state of interest;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- 09. Get Positive Rate for a Single State
+WITH monthly_stats AS (
+    SELECT strftime('%m', dt) AS mnth,
+           sum(positiveincrease) AS totpositive,
+           sum(totalTestResultsIncrease - positiveincrease) AS totnegative
+      FROM daily
+     WHERE 1=1
+       AND state = 'CA'  -- Replace with your desired state abbreviation
+     GROUP BY strftime('%m', dt)
+),
+state_stats AS (
+    SELECT mnth "Month",
+           totpositive "Total Positive",
+           totnegative "Total Negative",
+           totpositive + totnegative AS "Total Tests",
+           CAST(totpositive AS REAL) / NULLIF(CAST(totpositive + totnegative AS REAL), 0) AS "Positive Rate"
+      FROM monthly_stats
+)
+SELECT *
+  FROM state_stats;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>At this point I need to fix the tables so that I can match keys.</h2>
+<h2>Narrative for Matching Tables and Integrating Data</h2>
+<h3>Understanding Table Relationships:</h3>
+<ul>
+    <li><strong>State and State Population Tables:</strong>
+        <ul>
+            <li>Identify and verify that <code>state.name</code> in the <code>state</code> table matches <code>statepop.name</code> in the <code>statepop</code> table correctly. This ensures that each state's population data (<code>statepop</code>) corresponds accurately to the state details (<code>state</code>).</li>
+        </ul>
+    </li>
+</ul>
+
+<h3>Part 1: Get the Correct State Name:</h3>
+<p><strong>Objective:</strong> Match the state abbreviation (<code>stusps</code>) from the <code>state</code> table with the state name from the <code>statepop</code> table.</p>
+<p><strong>SQL Code:</strong></p>
+<pre><code>SELECT stusps, statepop.*
+FROM state, statepop
+WHERE state.name = statepop.name;</code></pre>
+<p><strong>Action Steps:</strong></p>
+<ul>
+    <li>Review the output to ensure that each <code>stusps</code> (state abbreviation) in the <code>state</code> table correctly corresponds to the respective state's population data (<code>statepop</code>).</li>
+</ul>
+
+<h3>Part 2: Join States and COVID Data:</h3>
+<p><strong>Objective:</strong> Integrate COVID-19 data (<code>daily</code> table) with state population data (<code>statepop</code>) using state abbreviations (<code>stusps</code>) as the key.</p>
+<p><strong>SQL Code:</strong></p>
+<pre><code>SELECT *
+FROM
+    (SELECT geometry, stusps, statepop.*
+     FROM state, statepop
+     WHERE state.name = statepop.name
+    ) AS stpop,
+    (SELECT state, sum(positiveIncrease) AS totpositive
+     FROM daily
+     GROUP BY state
+    ) AS stcovid
+WHERE stcovid.state = stpop.stusps;</code></pre>
+<p><strong>Action Steps:</strong></p>
+<ul>
+    <li>Confirm that the <code>stusps</code> from <code>state</code> correctly links with <code>statepop.name</code>.</li>
+    <li>Verify that <code>stcovid.state</code> in the subquery accurately aggregates COVID-19 data (<code>positiveIncrease</code>) per state.</li>
+</ul>
+
+<h3>Part 3: Calculate Percent Positive:</h3>
+<p><strong>Objective:</strong> Compute the percentage of positive COVID-19 cases relative to the state population estimate.</p>
+<p><strong>SQL Code:</strong></p>
+<pre><code>SELECT geometry, stusps,
+    CAST(totpositive AS real) / CAST(popestimate2019 AS real) AS percentpositive,
+    totpositive
+FROM
+    (SELECT geometry, stusps, statepop.*
+     FROM state, statepop
+     WHERE state.name = statepop.name
+    ) AS stpop,
+    (SELECT state, sum(positiveIncrease) AS totpositive
+     FROM daily
+     GROUP BY state
+    ) AS stcovid
+WHERE stcovid.state = stpop.stusps;</code></pre>
+<p><strong>Action Steps:</strong></p>
+<ul>
+    <li>Ensure that <code>popestimate2019</code> in <code>statepop</code> accurately reflects the estimated population for each state.</li>
+    <li>Validate the calculation of <code>percentpositive</code> to correctly represent the percentage of positive cases relative to the state's population.</li>
+</ul>
+
+<h2>Key Considerations:</h2>
+<ul>
+    <li><strong>Data Consistency:</strong> Verify that state names (<code>state.name</code> and <code>statepop.name</code>) are consistent across both tables.</li>
+    <li><strong>Join Conditions:</strong> Double-check join conditions (<code>stcovid.state = stpop.stusps</code>) to ensure accurate data linkage.</li>
+    <li><strong>Calculation Accuracy:</strong> Validate calculations (<code>percentpositive</code>) to accurately reflect the intended metrics.</li>
+</ul>
+
+<div class="code-block">
+    <pre><code>-- Part 1, Query that gets the correct state names
+SELECT stusps, statepop.*
+FROM state, statepop
+WHERE state.name = statepop.name;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>In the next query we just look at how we would join state, statepop, and daily tables</h2>
+
+<div class="code-block">
+    <pre><code>-- Part 2, query that joins the states and covid data
+SELECT *
+FROM
+    (SELECT geometry, stusps, statepop.*
+     FROM state, statepop
+     WHERE state.name = statepop.name
+    ) AS stpop,
+    (SELECT state, sum(positiveIncrease) AS totpositive
+     FROM daily
+     GROUP BY state
+    ) AS stcovid
+WHERE stcovid.state = stpop.stusps;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>Part 3 calculates the percentage of positive COVID-19 cases relative to the estimated state population for each state, using data joined from `state`, `statepop`, and `daily` tables based on matching state names or abbreviations.</h2>
+
+<div class="code-block">
+    <pre><code>-- Part 3, Show percent positive
+SELECT geometry, stusps,
+    CAST(totpositive AS real) / CAST(popestimate2019 AS real) AS percentpositive,
+    totpositive
+FROM
+    (SELECT geometry, stusps, statepop.*
+     FROM state, statepop
+     WHERE state.name = statepop.name
+    ) AS stpop,
+    (SELECT state, sum(positiveIncrease) AS totpositive
+     FROM daily
+     GROUP BY state
+    ) AS stcovid
+WHERE stcovid.state = stpop.stusps;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>Narrative for the last part</h2>
+<p>This script drops any existing <code>spatialtable</code>, then creates a new table named <code>spatialtable</code>. It populates this table with geographic data (<code>geometry</code>) and calculates the percentage of positive COVID-19 cases relative to the estimated state population (<code>percentpositive</code>). The data is sourced from joined information in <code>state</code> and <code>statepop</code> tables for state details and population estimates, and <code>daily</code> table for COVID-19 statistics aggregated by state. Finally, it ensures that the <code>geometry</code> column is properly configured for spatial data using the <code>recovergeometrycolumn</code> function.</p>
+<p>We run this in Spatialite_gui not here, but I have it here for documentation.</p>
+<pre><code>DROP TABLE IF EXISTS spatialtable;
+
+CREATE TABLE spatialtable AS
+SELECT geometry, stusps,
+    CAST(totpositive AS real) / CAST(popestimate2019 AS real) AS percentpositive,
+    totpositive
+FROM
+    (SELECT geometry, stusps, statepop.*
+     FROM state, statepop
+     WHERE state.name = statepop.name
+    ) AS stpop,
+    (SELECT state, sum(positiveIncrease) AS totpositive
+     FROM daily
+     GROUP BY state
+    ) AS stcovid
+WHERE stcovid.state = stpop.stusps;
+
+SELECT recovergeometrycolumn('spatialtable', 'geometry', 4269, 'MULTIPOLYGON');</code></pre>
+
+<h2>Small side-track on data per state using the spatialtable we just made just to illustrate that QGIS can create a map per state if we select the right tables.</h2>
+<img src="res/2024-06-29-11-46-37.png" alt="Map">
+
+<div class="code-block">
+    <pre><code>-- Part 4 alter daily table so population is a real number
+ALTER TABLE daily
+ADD COLUMN population real;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- Part 5 Confirm that the table was altered
+-- Enter this command in spatialite_gui to see all data types
+PRAGMA table_info(daily);</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- Part 6 confirm table is empty because we didn't add values yet
+SELECT population
+FROM daily
+LIMIT 5;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- Part 6.a select all data from stusps and statepop
+SELECT stusps, statepop.*
+FROM state, statepop
+WHERE state.name = statepop.name;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- Part 7 add population data to daily table
+UPDATE daily
+SET population = popestimate2019
+FROM (SELECT stusps, statepop.*
+      FROM state, statepop
+      WHERE state.name = statepop.name
+     ) AS t
+WHERE daily.state = t.stusps;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- Part 8 Confirm that the data has been added
+SELECT state, population
+FROM daily
+LIMIT 5;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>These changes were encouraged by the professor at Salisbury in order to make queries easier going forward, however, it's not normal form to put all the data into one table. Not my normal practice.</h2>
+
+<div class="code-block">
+    <pre><code>-- 10. See Percent of Positive Cases by State
+SELECT
+  state "State",
+  positiveincrease "Daily Positive Cases",
+  ROUND((SUM(positiveincrease) / MIN(population)) * 100, 2) || '%' AS "Positive Rate"
+FROM
+  daily
+GROUP BY
+  state
+ORDER BY
+  "Positive Rate" DESC
+LIMIT 10;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>Note: CountyPop table is HUGE so limit results when looking at it. In the next section we'll confirm the changes.</h2>
+
+<div class="code-block">
+    <pre><code>-- 11. Assign a Region to a County
+ALTER TABLE covidcounty ADD COLUMN region TEXT;
+
+UPDATE covidcounty
+SET region = countypop.region
+FROM countypop
+WHERE covidcounty.state = countypop.stname;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- 11.a Confirm the "region" column was added and no data
+SELECT * FROM covidcounty
+LIMIT 10;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- 12. Analyze the cencus by region for states
+-- run in spatialite_gui because it uses geo data
+WITH stpop AS (
+  SELECT
+    st.state AS stusps,
+    sp.*  -- assuming statepop has other columns you need
+  FROM
+    state AS st
+  JOIN
+    statepop AS sp ON st.name = sp.name
+),
+stcovid AS (
+  SELECT
+    state,
+    SUM(deathincrease) AS totdeath
+  FROM
+    daily
+  GROUP BY
+    state
+)
+SELECT
+  COUNT(*) AS ct,
+  stpop.region,
+  SUM(stcovid.totdeath) AS totdeath,
+  AVG(stcovid.totdeath) AS avgdeath,
+  STDDEV_SAMP(stcovid.totdeath) AS stdev_death,
+  STDDEV_SAMP(stcovid.totdeath) / AVG(stcovid.totdeath) AS cv
+FROM
+  stpop
+JOIN
+  stcovid ON stcovid.state = stpop.stusps
+GROUP BY
+  stpop.region;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<h2>Mask mandate status as of 2021 from the NY Times</h2>
+<img src="res/2024-06-29-14-21-58.png" alt="Mask Mandate">
+
+<div class="code-block">
+    <pre><code>-- 13. Nearby states with different mask mandates in 2021 (per 1M pop)
+SELECT
+  strftime('%W', dt) AS wk,
+  strftime('%Y', dt) AS yr,
+  MIN(dt) AS dt,
+  CAST(hospitalizedcurrently AS FLOAT) / population * 1000000 AS "Pct Hospitalized"
+FROM
+  daily
+WHERE
+  state = 'TN' -- change state for another view
+GROUP BY
+  yr,
+  wk
+ORDER BY
+  yr,
+  wk ASC
+LIMIT 10;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<img src="res/2024-06-29-13-26-03.png" alt="Chart">
+
+<div class="code-block">
+    <pre><code>-- 14a. Show Two States Hospitalized Rate Percent per 1M pop
+SELECT t.dt,"California Hospitalized", "Florida Hospitalized"
+FROM
+(SELECT  strftime('%W', dt) AS wk, strftime('%Y', dt) AS yr,
+      min(dt) AS dt,
+      CAST(hospitalizedcurrently AS float)/population*1000000 as "California Hospitalized"
+FROM daily
+WHERE state = 'CA'
+GROUP BY yr,wk
+ORDER BY yr,wk ASC) AS t,
+(SELECT  strftime('%W', dt) AS wk, strftime('%Y', dt) AS yr,
+      min(dt) AS dt,
+      CAST(hospitalizedcurrently AS float)/population*1000000 as "Florida Hospitalized"
+FROM daily
+WHERE state = 'FL'
+GROUP BY yr,wk
+ORDER BY yr,wk ASC) AS t2
+WHERE t.dt = t2.dt
+LIMIT 5 -- remove to see all data, limited to keep size of notebook small;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<div class="code-block">
+    <pre><code>-- 14b. Show Two States Hospitalized Rate Percent per 1M pop
+-- Significantly easier to read as a CTE
+WITH
+     Hosp1 AS  (
+          SELECT strftime('%W', dt) AS week,
+                 strftime('%Y', dt) AS year,
+                 min(dt) AS dt,
+                 CAST(hospitalizedcurrently AS float)/ population * 1000000 AS first_hosp
+            FROM daily
+           WHERE state = 'CA' -- State abr of first hospital
+        GROUP BY year,
+                 week),
+   Hosp2 AS  (
+          SELECT strftime('%W', dt) AS week,
+                 strftime('%Y', dt) AS year,
+                 min(dt) AS dt,
+                 CAST(hospitalizedcurrently AS float)/ population * 1000000 AS second_hosp
+            FROM daily
+           WHERE state = 'FL' -- State abr of second hospital
+        GROUP BY year,
+                 week)
+-- Outcome
+     SELECT Hosp1.dt "Date",
+            Hosp1.first_hosp AS "California Hospitalized",
+            Hosp2.second_hosp AS "Florida Hospitalized"
+       FROM Hosp1
+       JOIN Hosp2
+         ON Hosp1.dt = Hosp2.dt
+   ORDER BY Hosp1.dt;</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<img src="res/2024-06-29-14-01-39.png" alt="Chart">
+<h2>To make this a little easier I just downloaded the SQLite ODBC driver so I can query directly in Excel multiple different states and find a pattern. This is easier than updating the PostreSQL database that I made earlier.</h2>
+<p><a href="http://www.ch-werner.de/sqliteodbc/">SQLITE ODBC Driver</a></p>
+<h2>Then a little struggle getting the connection string right. It must be:</h2>
+<p><code>Driver={SQLite3 ODBC Driver};Database=[PATH TO SQLITE FILE];</code></p>
+<h2>Now all you have to do is make changes to the query in the advanced M code section like this in the screenshot below:</h2>
+<img src="res/2024-06-29-15-46-13.png" alt="Screenshot">
+<h2>Ok now let's start making some graphs!</h2>
+<img src="res/2024-06-29-15-52-40.png" width="700" height="400" alt="Graph">
+<img src="res/2024-06-29-15-55-01.png" width="700" height="400" alt="Graph">
+<img src="res/2024-06-29-15-57-25.png" width="700" height="400" alt="Graph">
+
+<div class="code-block">
+    <pre><code>-- 15. Create a spatial table and use geo-data to find new deaths for a
+-- day and link to a map - enter this in spatialite_gui
+DROP TABLE IF EXISTS spatialtable;
+
+CREATE TABLE spatialtable AS
+SELECT
+  state.pk_uid,
+  GEOMETRY,
+  dt,
+  deathincrease,
+  stusps
+FROM
+  daily,
+  state
+WHERE
+  dt = '2020-08-10'
+  AND daily.state = stusps
+  AND state IN ('CA', 'OR', 'NV', 'AR', 'UT');
+
+SELECT recovergeometrycolumn ('spatialtable', 'geometry', 4269, 'MULTIPOLYGON');</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+
+<script>
+    function copyCode(button) {
+        const codeBlock = button.previousElementSibling;
+        const codeText = codeBlock.textContent;
+        navigator.clipboard.writeText(codeText).then(() => {
+            button.textContent = 'Copied!';
+            setTimeout(() => {
+                button.textContent = 'Copy';
+            }, 2000);
+        });
+    }
+</script>
+</body>
+</html>
