@@ -48,7 +48,7 @@ An attempt was made to transition approximately 30% of the project to PostgreSQL
 
 #### HTML Documents
 
-**Interactive Documentation:** The project is documented in two HTML files, `day01.html` and `day02.html`, each structured like a Jupyter notebook. These documents feature about 30 cells per day, including:
+**Interactive Documentation:** The project is documented in two HTML files, [day01.html](https://htmlpreview.github.io/?https://github.com/lundeen-bryan/COVID-Analysis-with-SQL/blob/main/day01.html) and [day02.html](https://htmlpreview.github.io/?https://github.com/lundeen-bryan/COVID-Analysis-with-SQL/blob/main/day02.html), each structured like a Jupyter notebook. These documents feature about 30 cells per day, including:
 
 - **Markdown Cells**: These cells provide detailed explanations, outline the objectives for each step, and contextualize the code and results. They also include reflections and insights, enhancing the readability and educational value of the documentation.
 - **Code Cells**: These include the SQL queries and any other scripts used to perform the analysis. Viewing the code alongside the explanations allows for a deeper understanding of the methods and techniques applied.
