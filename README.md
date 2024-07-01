@@ -62,7 +62,7 @@ An attempt was made to transition approximately 30% of the project to PostgreSQL
 
 The analysis primarily focused on comparing hospitalization rates due to COVID-19 between states with and without mask mandates over the period from March 2020 to March 2021. Key findings include:
 
-- No significant statistical difference in hospitalization rates between states with mask mandates and those without, as evidenced by t-test results. This suggests that while mask mandates might have influenced public health outcomes, other factors could also play substantial roles.
+- Significant statistical differences in hospitalization rates were observed between states with various mask mandate policies and those without, as indicated by t-test results. This suggests that mask mandates may have had a discernible impact on public health outcomes, although other contributing factors should also be considered.
 - States like California and Florida showed similar trends despite differing mask mandate policies, indicating a complex interaction of multiple variables affecting hospitalization rates.
 
 #### Visualizations
@@ -159,7 +159,7 @@ Boundaries (state, county, urban): https://www.census.gov/geographies/mapping-fi
 
 ## Feedback
 
-If you have any feedback, please reach out to us on LinkedIn.
+If you have any feedback, please reach out to me on LinkedIn.
 
 ### Frequently Asked Questions (FAQs)
 
